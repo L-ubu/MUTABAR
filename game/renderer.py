@@ -50,10 +50,10 @@ class TextBuffer:
 
     def draw_box(self, x: int, y: int, width: int, height: int,
                  color: tuple[int, int, int] = (200, 200, 200)):
-        self.write(x, y, "┌" + "─" * (width - 2) + "┐", color)
+        self.write(x, y, "\u250c" + "\u2500" * (width - 2) + "\u2510", color)
         for row in range(1, height - 1):
-            self.write(x, y + row, "│" + " " * (width - 2) + "│", color)
-        self.write(x, y + height - 1, "└" + "─" * (width - 2) + "┘", color)
+            self.write(x, y + row, "\u2502" + " " * (width - 2) + "\u2502", color)
+        self.write(x, y + height - 1, "\u2514" + "\u2500" * (width - 2) + "\u2518", color)
 
     def draw_hp_bar(self, x: int, y: int, width: int, current: int, maximum: int,
                     fill_color: tuple[int, int, int] = (158, 206, 106),
@@ -62,9 +62,9 @@ class TextBuffer:
         filled = int(ratio * width)
         empty = width - filled
         for i in range(filled):
-            self.write(x + i, y, "█", fill_color)
+            self.write(x + i, y, "\u2588", fill_color)
         for i in range(empty):
-            self.write(x + filled + i, y, "░", empty_color)
+            self.write(x + filled + i, y, "\u2591", empty_color)
 
     def render_to_surface(self, surface, font, bg_color: tuple[int, int, int]):
         """Render the text buffer to a pygame surface."""

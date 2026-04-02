@@ -1,7 +1,7 @@
 """
 game/llm/engine.py
 LLM loader and inference module for MUTABAR.
-Wraps llama-cpp-python with thread-safe generation.
+Wraps llama-cpp-python with thread-safe generation using chat completion.
 """
 
 import threading
@@ -10,7 +10,7 @@ _llm = None
 _lock = threading.Lock()
 
 
-def load_model(model_path, n_gpu_layers=-1, n_ctx=1024, n_threads=4):
+def load_model(model_path, n_gpu_layers=-1, n_ctx=4096, n_threads=4):
     global _llm
     from llama_cpp import Llama
     _llm = Llama(
@@ -22,32 +22,47 @@ def load_model(model_path, n_gpu_layers=-1, n_ctx=1024, n_threads=4):
     )
 
 
-def apply_lora(lora_path):
-    if _llm is None:
-        raise RuntimeError("Model not loaded")
-    # Note: llama-cpp-python LoRA API may vary; this is a placeholder
-    # _llm.set_lora(lora_path)
-    pass
+def is_loaded() -> bool:
+    return _llm is not None
 
 
-def generate(prompt, max_tokens=80, temperature=0.7):
+def generate(prompt, max_tokens=60, temperature=0.8):
+    """Generate narration using chat completion format for Qwen3."""
     if _llm is None:
         raise RuntimeError("Model not loaded")
     with _lock:
-        result = _llm.create_completion(prompt, max_tokens=max_tokens, temperature=temperature)
-    return result["choices"][0]["text"].strip()
-
-
-def generate_stream(prompt, max_tokens=80, temperature=0.7):
-    if _llm is None:
-        raise RuntimeError("Model not loaded")
-    with _lock:
-        for chunk in _llm.create_completion(
-            prompt,
+        result = _llm.create_chat_completion(
+            messages=[
+                {
+                    "role": "system",
+                    "content": (
+                        "You narrate creature battles. "
+                        "Write exactly 1-2 short, vivid sentences. "
+                        "No instructions. No meta. Just narrate."
+                    ),
+                },
+                {
+                    "role": "user",
+                    "content": prompt + " /no_think",
+                },
+            ],
             max_tokens=max_tokens,
             temperature=temperature,
-            stream=True,
-        ):
-            token = chunk["choices"][0]["text"]
-            if token:
-                yield token
+        )
+    text = result["choices"][0]["message"]["content"].strip()
+    text = _strip_think_tags(text)
+    return text
+
+
+def _strip_think_tags(text: str) -> str:
+    """Remove Qwen3 <think>...</think> reasoning blocks from output."""
+    import re
+    # Case 1: complete <think>...</think> block
+    text = re.sub(r"<think>.*?</think>", "", text, flags=re.DOTALL).strip()
+    # Case 2: unclosed <think> (model hit max_tokens before closing)
+    if "<think>" in text:
+        text = text[:text.index("<think>")].strip()
+    # Case 3: text starts after </think> (thinking was at the start)
+    if "</think>" in text:
+        text = text[text.index("</think>") + len("</think>"):].strip()
+    return text

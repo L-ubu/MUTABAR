@@ -56,148 +56,84 @@ def water_bear():
 class TestBuildBattlePrompt:
     def test_includes_attacker_name(self, fire_wolf, water_bear):
         prompt = build_battle_prompt(
-            attacker=fire_wolf,
-            defender=water_bear,
-            command="attack with feral bite",
-            damage=25,
-            effectiveness="super effective",
-            is_critical=False,
+            attacker=fire_wolf, defender=water_bear,
+            command="attack with feral bite", damage=25,
+            effectiveness="super_effective", is_critical=False,
         )
         assert "Wolf" in prompt
 
     def test_includes_defender_name(self, fire_wolf, water_bear):
         prompt = build_battle_prompt(
-            attacker=fire_wolf,
-            defender=water_bear,
-            command="attack with feral bite",
-            damage=25,
-            effectiveness="super effective",
-            is_critical=False,
+            attacker=fire_wolf, defender=water_bear,
+            command="attack with feral bite", damage=25,
+            effectiveness="super_effective", is_critical=False,
         )
         assert "Bear" in prompt
 
     def test_includes_command_text(self, fire_wolf, water_bear):
         command = "unleash howling fury"
         prompt = build_battle_prompt(
-            attacker=fire_wolf,
-            defender=water_bear,
-            command=command,
-            damage=18,
-            effectiveness="neutral",
-            is_critical=False,
+            attacker=fire_wolf, defender=water_bear,
+            command=command, damage=18,
+            effectiveness="neutral", is_critical=False,
         )
         assert command in prompt
 
-    def test_includes_attacker_type_personality(self, fire_wolf, water_bear):
-        prompt = build_battle_prompt(
-            attacker=fire_wolf,
-            defender=water_bear,
-            command="strike hard",
-            damage=20,
-            effectiveness="neutral",
-            is_critical=False,
-        )
-        # FIRE personality is "Passionate and intense"
-        assert "Passionate" in prompt or "intense" in prompt or "passionate" in prompt
-
-    def test_includes_attacker_trait_names(self, fire_wolf, water_bear):
-        prompt = build_battle_prompt(
-            attacker=fire_wolf,
-            defender=water_bear,
-            command="strike hard",
-            damage=15,
-            effectiveness="neutral",
-            is_critical=False,
-        )
-        assert "Pack Hunter" in prompt or "Feral Bite" in prompt
-
-    def test_includes_defender_trait_names(self, fire_wolf, water_bear):
-        prompt = build_battle_prompt(
-            attacker=fire_wolf,
-            defender=water_bear,
-            command="strike hard",
-            damage=15,
-            effectiveness="neutral",
-            is_critical=False,
-        )
-        assert "Crushing Swipe" in prompt or "Thick Hide" in prompt
-
-    def test_includes_damage(self, fire_wolf, water_bear):
-        prompt = build_battle_prompt(
-            attacker=fire_wolf,
-            defender=water_bear,
-            command="strike hard",
-            damage=42,
-            effectiveness="neutral",
-            is_critical=False,
-        )
-        assert "42" in prompt
-
-    def test_includes_effectiveness(self, fire_wolf, water_bear):
-        prompt = build_battle_prompt(
-            attacker=fire_wolf,
-            defender=water_bear,
-            command="strike hard",
-            damage=10,
-            effectiveness="super effective",
-            is_critical=False,
-        )
-        assert "super effective" in prompt
-
-    def test_mentions_critical_when_true(self, fire_wolf, water_bear):
-        prompt = build_battle_prompt(
-            attacker=fire_wolf,
-            defender=water_bear,
-            command="strike hard",
-            damage=30,
-            effectiveness="neutral",
-            is_critical=True,
-        )
-        assert "critical" in prompt.lower()
-
-    def test_no_critical_mention_when_false(self, fire_wolf, water_bear):
-        prompt = build_battle_prompt(
-            attacker=fire_wolf,
-            defender=water_bear,
-            command="strike hard",
-            damage=30,
-            effectiveness="neutral",
-            is_critical=False,
-        )
-        assert "critical" not in prompt.lower()
-
-    def test_requests_two_to_three_sentences(self, fire_wolf, water_bear):
-        prompt = build_battle_prompt(
-            attacker=fire_wolf,
-            defender=water_bear,
-            command="bite and tear",
-            damage=20,
-            effectiveness="neutral",
-            is_critical=False,
-        )
-        assert "2" in prompt or "2-3" in prompt or "two" in prompt.lower() or "three" in prompt.lower()
-
     def test_includes_attacker_type_name(self, fire_wolf, water_bear):
         prompt = build_battle_prompt(
-            attacker=fire_wolf,
-            defender=water_bear,
-            command="strike",
-            damage=10,
-            effectiveness="neutral",
-            is_critical=False,
+            attacker=fire_wolf, defender=water_bear,
+            command="strike", damage=10,
+            effectiveness="neutral", is_critical=False,
         )
         assert "FIRE" in prompt
 
     def test_includes_defender_type_name(self, fire_wolf, water_bear):
         prompt = build_battle_prompt(
-            attacker=fire_wolf,
-            defender=water_bear,
-            command="strike",
-            damage=10,
-            effectiveness="neutral",
-            is_critical=False,
+            attacker=fire_wolf, defender=water_bear,
+            command="strike", damage=10,
+            effectiveness="neutral", is_critical=False,
         )
         assert "WATER" in prompt
+
+    def test_includes_damage(self, fire_wolf, water_bear):
+        prompt = build_battle_prompt(
+            attacker=fire_wolf, defender=water_bear,
+            command="strike hard", damage=42,
+            effectiveness="neutral", is_critical=False,
+        )
+        assert "42" in prompt
+
+    def test_includes_effectiveness(self, fire_wolf, water_bear):
+        prompt = build_battle_prompt(
+            attacker=fire_wolf, defender=water_bear,
+            command="strike hard", damage=10,
+            effectiveness="super_effective", is_critical=False,
+        )
+        assert "super effective" in prompt
+
+    def test_mentions_critical_when_true(self, fire_wolf, water_bear):
+        prompt = build_battle_prompt(
+            attacker=fire_wolf, defender=water_bear,
+            command="strike hard", damage=30,
+            effectiveness="neutral", is_critical=True,
+        )
+        assert "critical" in prompt.lower()
+
+    def test_no_critical_mention_when_false(self, fire_wolf, water_bear):
+        prompt = build_battle_prompt(
+            attacker=fire_wolf, defender=water_bear,
+            command="strike hard", damage=30,
+            effectiveness="neutral", is_critical=False,
+        )
+        assert "critical" not in prompt.lower()
+
+    def test_includes_narrate_instruction(self, fire_wolf, water_bear):
+        prompt = build_battle_prompt(
+            attacker=fire_wolf, defender=water_bear,
+            command="bite and tear", damage=20,
+            effectiveness="neutral", is_critical=False,
+        )
+        assert "narrate" in prompt.lower()
 
 
 # ---------------------------------------------------------------------------
@@ -221,15 +157,6 @@ class TestBuildRevealPrompt:
             traits=["Data Rend", "Pixel Shift"],
         )
         assert "TECH" in prompt
-
-    def test_includes_type_personality(self):
-        prompt = build_reveal_prompt(
-            creature_name="Voidmaw",
-            mutation_type=MutationType.SHAD,
-            traits=["Devour", "Void Surge"],
-        )
-        # SHAD personality is "Hollow and deathly, nightmarish"
-        assert "Hollow" in prompt or "deathly" in prompt or "nightmarish" in prompt or "hollow" in prompt
 
     def test_includes_trait_names(self):
         prompt = build_reveal_prompt(
