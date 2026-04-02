@@ -152,6 +152,107 @@ class MutabarDB:
         return int(cursor.fetchone()[0])
 
     # ------------------------------------------------------------------
+    # Wallet
+    # ------------------------------------------------------------------
+
+    def get_mutagen(self) -> int:
+        cursor = self._conn.execute("SELECT mutagen FROM wallet WHERE id = 1;")
+        return int(cursor.fetchone()["mutagen"])
+
+    def add_mutagen(self, amount: int) -> None:
+        self._conn.execute("UPDATE wallet SET mutagen = mutagen + ? WHERE id = 1;", (amount,))
+        self._conn.commit()
+
+    def spend_mutagen(self, amount: int) -> bool:
+        if self.get_mutagen() < amount:
+            return False
+        self._conn.execute("UPDATE wallet SET mutagen = mutagen - ? WHERE id = 1;", (amount,))
+        self._conn.commit()
+        return True
+
+    # ------------------------------------------------------------------
+    # Collection
+    # ------------------------------------------------------------------
+
+    def save_creature(self, name: str, species: str, category: str, mutation_type: str,
+                      base_hp: int, base_atk: int, base_def: int, traits_json: str, is_shiny: int) -> int:
+        cursor = self._conn.execute(
+            """INSERT INTO monsters (name, species, category, mutation_type, hp, atk, defense, traits, is_shiny)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?);""",
+            (name, species, category, mutation_type, base_hp, base_atk, base_def, traits_json, is_shiny),
+        )
+        self._conn.commit()
+        return cursor.lastrowid
+
+    def get_collection(self) -> list[dict]:
+        cursor = self._conn.execute("SELECT * FROM monsters ORDER BY id;")
+        result = []
+        for row in cursor.fetchall():
+            d = dict(row)
+            if d.get("traits") and isinstance(d["traits"], str):
+                try:
+                    d["traits"] = json.loads(d["traits"])
+                except Exception:
+                    pass
+            result.append(d)
+        return result
+
+    def get_discovered_species(self) -> set[str]:
+        cursor = self._conn.execute("SELECT DISTINCT species FROM monsters WHERE species IS NOT NULL;")
+        return {row["species"] for row in cursor.fetchall()}
+
+    # ------------------------------------------------------------------
+    # Stats
+    # ------------------------------------------------------------------
+
+    def get_stats(self) -> dict:
+        creatures_discovered = int(self._conn.execute("SELECT COUNT(*) FROM monsters;").fetchone()[0])
+        shinies_found = int(self._conn.execute("SELECT COUNT(*) FROM monsters WHERE is_shiny = 1;").fetchone()[0])
+        runs_completed = int(self._conn.execute("SELECT COUNT(*) FROM runs WHERE ended_at IS NOT NULL;").fetchone()[0])
+        highest_wave = int(self._conn.execute("SELECT COALESCE(MAX(waves_survived), 0) FROM runs;").fetchone()[0])
+        total_mutagen = self.get_mutagen()
+        return {
+            "creatures_discovered": creatures_discovered,
+            "shinies_found": shinies_found,
+            "runs_completed": runs_completed,
+            "highest_wave": highest_wave,
+            "total_mutagen": total_mutagen,
+        }
+
+    # ------------------------------------------------------------------
+    # Idle Arena
+    # ------------------------------------------------------------------
+
+    def get_idle_team(self) -> list[dict]:
+        cursor = self._conn.execute("""
+            SELECT ia.slot, m.* FROM idle_arena ia
+            JOIN monsters m ON m.id = ia.monster_id
+            ORDER BY ia.slot;
+        """)
+        result = []
+        for row in cursor.fetchall():
+            d = dict(row)
+            if d.get("traits") and isinstance(d["traits"], str):
+                try:
+                    d["traits"] = json.loads(d["traits"])
+                except Exception:
+                    pass
+            result.append(d)
+        return result
+
+    def set_idle_slot(self, slot: int, monster_id: int) -> None:
+        self._conn.execute("INSERT OR REPLACE INTO idle_arena (slot, monster_id) VALUES (?, ?);", (slot, monster_id))
+        self._conn.commit()
+
+    def clear_idle_slot(self, slot: int) -> None:
+        self._conn.execute("DELETE FROM idle_arena WHERE slot = ?;", (slot,))
+        self._conn.commit()
+
+    def get_idle_monster_ids(self) -> set[int]:
+        cursor = self._conn.execute("SELECT monster_id FROM idle_arena;")
+        return {row["monster_id"] for row in cursor.fetchall()}
+
+    # ------------------------------------------------------------------
     # Lifecycle
     # ------------------------------------------------------------------
 
