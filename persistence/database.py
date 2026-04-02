@@ -41,6 +41,7 @@ class MutabarDB:
                 fusion_parent_1  TEXT,
                 fusion_parent_2  TEXT,
                 acquired_from    TEXT,
+                is_shiny         INTEGER NOT NULL DEFAULT 0,
                 created_at       TEXT    DEFAULT (datetime('now'))
             );
 
@@ -56,6 +57,17 @@ class MutabarDB:
                 id          INTEGER PRIMARY KEY AUTOINCREMENT,
                 tier        TEXT    NOT NULL,
                 unlocked_at TEXT    DEFAULT (datetime('now'))
+            );
+
+            CREATE TABLE IF NOT EXISTS wallet (
+                id      INTEGER PRIMARY KEY CHECK (id = 1),
+                mutagen INTEGER NOT NULL DEFAULT 0
+            );
+            INSERT OR IGNORE INTO wallet (id, mutagen) VALUES (1, 0);
+
+            CREATE TABLE IF NOT EXISTS idle_arena (
+                slot       INTEGER PRIMARY KEY CHECK (slot BETWEEN 1 AND 3),
+                monster_id INTEGER NOT NULL REFERENCES monsters(id)
             );
         """)
         self._conn.commit()
