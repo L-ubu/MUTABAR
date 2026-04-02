@@ -29,18 +29,23 @@ class MainMenuScreen(Screen):
 
     def draw(self):
         self.buffer.clear()
-        self.buffer.write(15, 2, "M U T A B A R", self.theme.accent_color)
-        self.buffer.write(10, 4, "Monster Battle Simulator", self.theme.dim_text_color)
-        self.buffer.write(6, 5, "\u2500" * 38, self.theme.border_color)
+        W = self.buffer.cols
+        t = self.theme
+
+        center = (W - 13) // 2
+        self.buffer.write(center, 2, "M U T A B A R", t.accent_color)
+        sub = "Monster Battle Simulator"
+        self.buffer.write((W - len(sub)) // 2, 4, sub, t.dim_text_color)
+        self.buffer.write(3, 5, "\u2500" * (W - 6), t.border_color)
 
         for i, item in enumerate(self.ITEMS):
             y = 8 + i * 3
             if i == self.selected:
-                self.buffer.draw_box(8, y - 1, 34, 3, self.theme.accent_color)
-                self.buffer.write(10, y, f"> {item}", self.theme.text_color)
+                self.buffer.draw_box(5, y - 1, W - 10, 3, t.accent_color)
+                self.buffer.write(7, y, f"\u25b8 {item}", t.text_color)
             else:
-                self.buffer.draw_box(8, y - 1, 34, 3, self.theme.border_color)
-                self.buffer.write(10, y, f"  {item}", self.theme.dim_text_color)
+                self.buffer.draw_box(5, y - 1, W - 10, 3, t.border_color)
+                self.buffer.write(7, y, f"  {item}", t.dim_text_color)
 
-        self.buffer.write(10, 22, "Arrow keys + Enter", self.theme.dim_text_color)
-        self.buffer.write(10, 23, "ESC to close", self.theme.dim_text_color)
+        self.buffer.write(7, 20, "Arrow keys + Enter", t.dim_text_color)
+        self.buffer.write(7, 21, "ESC to close", t.dim_text_color)

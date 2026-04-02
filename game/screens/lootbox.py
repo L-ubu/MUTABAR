@@ -7,7 +7,7 @@ from game.progression.lootbox import RollResult, Rarity
 class LootboxScreen(Screen):
     """CS:GO-style rolling lootbox animation."""
 
-    STRIP_VISIBLE = 7
+    STRIP_VISIBLE = 5
     CELL_WIDTH = 6
 
     def __init__(self, buffer: TextBuffer, theme: Theme, roll_result: RollResult):
@@ -43,18 +43,18 @@ class LootboxScreen(Screen):
     def draw(self):
         self.buffer.clear()
         t = self.theme
+        W = self.buffer.cols
 
-        self.buffer.write(15, 2, "L O O T B O X", t.accent_color)
-        self.buffer.write(10, 4, "\u2500" * 30, t.border_color)
+        center_title = (W - 13) // 2
+        self.buffer.write(center_title, 1, "L O O T B O X", t.accent_color)
+        self.buffer.write(5, 3, "\u2500" * (W - 10), t.border_color)
 
-        center_x = 25
-        marker_y = 7
-        strip_y = 9
+        center_x = W // 2
+        strip_w = self.STRIP_VISIBLE * self.CELL_WIDTH
+        strip_x = center_x - strip_w // 2
 
-        self.buffer.write(center_x, marker_y, "\u25bc", t.highlight_color)
-
-        self.buffer.draw_box(center_x - self.STRIP_VISIBLE * self.CELL_WIDTH // 2 - 1, strip_y - 1,
-                            self.STRIP_VISIBLE * self.CELL_WIDTH + 2, 3, t.accent_color)
+        self.buffer.write(center_x, 5, "\u25bc", t.highlight_color)
+        self.buffer.draw_box(strip_x - 1, 6, strip_w + 2, 3, t.accent_color)
 
         int_offset = int(self.offset)
         for i in range(self.STRIP_VISIBLE):
@@ -62,10 +62,10 @@ class LootboxScreen(Screen):
             if 0 <= idx < len(self.roll.strip):
                 creature = self.roll.strip[idx]
                 name = creature.name[:4].upper()
-                x = center_x - self.STRIP_VISIBLE * self.CELL_WIDTH // 2 + i * self.CELL_WIDTH
+                x = strip_x + i * self.CELL_WIDTH
                 is_center = (i == self.STRIP_VISIBLE // 2)
                 color = t.highlight_color if is_center and self.phase == "reveal" else t.text_color
-                self.buffer.write(x, strip_y, f" {name} ", color)
+                self.buffer.write(x, 7, f" {name} ", color)
 
         if self.phase == "reveal":
             rarity_colors = {
@@ -78,11 +78,12 @@ class LootboxScreen(Screen):
             rc = rarity_colors.get(self.roll.rarity, t.text_color)
             creature = self.roll.template
 
-            self.buffer.draw_box(8, 13, 34, 11, rc)
-            self.buffer.write(12, 14, f"\u2605 {self.roll.rarity.name} \u2605", rc)
-            self.buffer.write(12, 16, creature.name, t.text_color)
-            self.buffer.write(12, 18, "Traits:", t.dim_text_color)
-            for j, trait in enumerate(creature.traits[:4]):
-                self.buffer.write(14, 19 + j, f"\u2022 {trait.name}", t.text_color)
+            self.buffer.draw_box(4, 11, W - 8, 10, rc)
+            self.buffer.write(7, 12, f"\u2605 {self.roll.rarity.name} \u2605", rc)
+            self.buffer.write(7, 14, creature.name, t.text_color)
+            self.buffer.write(7, 16, "Traits:", t.dim_text_color)
+            for j, trait in enumerate(creature.traits[:3]):
+                self.buffer.write(9, 17 + j, f"\u2022 {trait.name}", t.text_color)
 
-            self.buffer.write(10, 25, "[Enter] to continue", t.dim_text_color)
+            center_cont = (W - 20) // 2
+            self.buffer.write(center_cont, 23, "[Enter] to continue", t.dim_text_color)

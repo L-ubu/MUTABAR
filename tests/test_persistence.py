@@ -164,11 +164,11 @@ class TestMutabarConfigDefaults:
 
     def test_default_llm_temperature(self, tmp_config_path):
         cfg = MutabarConfig(tmp_config_path)
-        assert cfg.llm_temperature == pytest.approx(0.7)
+        assert cfg.llm_temperature == pytest.approx(0.8)
 
     def test_default_llm_max_tokens(self, tmp_config_path):
         cfg = MutabarConfig(tmp_config_path)
-        assert cfg.llm_max_tokens == 80
+        assert cfg.llm_max_tokens == 60
 
     def test_default_llm_n_gpu_layers(self, tmp_config_path):
         cfg = MutabarConfig(tmp_config_path)
@@ -176,7 +176,7 @@ class TestMutabarConfigDefaults:
 
     def test_default_llm_n_ctx(self, tmp_config_path):
         cfg = MutabarConfig(tmp_config_path)
-        assert cfg.llm_n_ctx == 1024
+        assert cfg.llm_n_ctx == 4096
 
     def test_default_typewriter_speed(self, tmp_config_path):
         cfg = MutabarConfig(tmp_config_path)
@@ -228,10 +228,10 @@ class TestMutabarConfigSaveReload:
 
         cfg = MutabarConfig(tmp_config_path)
         assert cfg.theme == "nord"
-        assert cfg.llm_temperature == pytest.approx(0.7)
+        assert cfg.llm_temperature == pytest.approx(0.8)
         assert cfg.typewriter_speed == 30
 
     def test_nonexistent_path_uses_defaults(self, tmp_config_path):
         cfg = MutabarConfig(tmp_config_path + ".nonexistent")
         assert cfg.theme == "tokyo_night"
-        assert cfg.llm_n_ctx == 1024
+        assert cfg.llm_n_ctx == 4096

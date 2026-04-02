@@ -5,8 +5,8 @@ import pygame
 class GameWindow:
     """Borderless pygame window positioned below the macOS menu bar."""
 
-    WIDTH = 400
-    HEIGHT = 500
+    WIDTH = 350
+    HEIGHT = 420
     FPS = 30
 
     def __init__(self, font_path: str = None):
@@ -18,7 +18,6 @@ class GameWindow:
         )
         pygame.display.set_caption("MUTABAR")
 
-        # Load font
         if font_path and os.path.exists(font_path):
             self.font = pygame.font.Font(font_path, 13)
         else:
@@ -26,48 +25,51 @@ class GameWindow:
 
         self.clock = pygame.time.Clock()
         self.visible = True
+        self._ns_window = None
 
-        # Calculate how many rows actually fit
         self.char_h = self.font.get_linesize()
+        self.char_w = self.font.size("M")[0]
         self.max_rows = self.HEIGHT // self.char_h
+        self.max_cols = self.WIDTH // self.char_w
 
-        # macOS setup: hide from Dock, position, and focus
         self._setup_macos()
 
     def _setup_macos(self):
-        """Hide from Dock, position below menu bar, grab keyboard focus."""
+        """Hide from Dock, configure window with rounded corners and floating level."""
         import AppKit
 
         ns_app = AppKit.NSApplication.sharedApplication()
-
-        # Hide from Dock and Cmd+Tab
         ns_app.setActivationPolicy_(
             AppKit.NSApplicationActivationPolicyAccessory
         )
 
-        # Find our NSWindow and position it
-        screen = AppKit.NSScreen.mainScreen()
-        screen_height = screen.frame().size.height
-        screen_width = int(screen.frame().size.width)
-        menu_height = (
-            screen_height
-            - screen.visibleFrame().size.height
-            - screen.visibleFrame().origin.y
-        )
-
-        x = screen_width - self.WIDTH - 10
-        # NSWindow y = distance from bottom of screen to bottom of window
-        y = screen_height - int(menu_height) - self.HEIGHT
-
         for win in ns_app.windows():
-            frame = AppKit.NSMakeRect(x, y, self.WIDTH, self.HEIGHT)
-            win.setFrame_display_(frame, True)
-            win.setLevel_(3)  # NSFloatingWindowLevel — stays on top
+            self._ns_window = win
+            win.setLevel_(3)  # NSFloatingWindowLevel
+            win.setOpaque_(False)
+            win.setBackgroundColor_(AppKit.NSColor.clearColor())
+            win.setHasShadow_(True)
+
+            # Round the content view corners
+            content_view = win.contentView()
+            content_view.setWantsLayer_(True)
+            layer = content_view.layer()
+            if layer:
+                layer.setCornerRadius_(12.0)
+                layer.setMasksToBounds_(True)
+
             win.makeKeyAndOrderFront_(None)
             break
 
-        # Activate so we receive keyboard text input
         ns_app.activateIgnoringOtherApps_(True)
+
+    def set_position(self, x: int, y: int):
+        """Position the window at screen coordinates."""
+        import AppKit
+
+        if self._ns_window:
+            frame = AppKit.NSMakeRect(x, y, self.WIDTH, self.HEIGHT)
+            self._ns_window.setFrame_display_(frame, True)
 
     def focus(self):
         """Bring window to front and give it keyboard focus."""
@@ -75,19 +77,22 @@ class GameWindow:
 
         ns_app = AppKit.NSApplication.sharedApplication()
         ns_app.activateIgnoringOtherApps_(True)
-        for win in ns_app.windows():
-            win.makeKeyAndOrderFront_(None)
-            break
+        if self._ns_window:
+            self._ns_window.makeKeyAndOrderFront_(None)
 
     def show(self):
         self.visible = True
+        if self._ns_window:
+            self._ns_window.orderFront_(None)
         self.focus()
 
     def hide(self):
         self.visible = False
+        if self._ns_window:
+            self._ns_window.orderOut_(None)
 
     def tick(self) -> list:
-        """Process events and return them. Call each frame."""
+        """Process events and return them."""
         self.clock.tick(self.FPS)
         events = []
         for event in pygame.event.get():

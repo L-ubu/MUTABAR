@@ -15,10 +15,10 @@ _DEFAULTS: dict[str, Any] = {
     "theme": "tokyo_night",
     "llm": {
         "n_gpu_layers": -1,
-        "n_ctx": 1024,
+        "n_ctx": 4096,
         "n_threads": 4,
-        "temperature": 0.7,
-        "max_tokens": 80,
+        "temperature": 0.8,
+        "max_tokens": 60,
     },
     "load_side": "right",
     "typewriter_speed": 30,

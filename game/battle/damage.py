@@ -42,8 +42,12 @@ def calculate_damage(
 
     rng_factor = random.uniform(0.85, 1.15)
 
+    # Creativity bonus: longer, more descriptive commands deal more damage
+    word_count = len(command.strip().split())
+    creativity = 1.0 + min(word_count, 6) * 0.05  # up to 1.3x for 6+ words
+
     base = (attacker.atk / max(defender.defense, 1)) * 10
-    raw = base * type_mult * trait_bonus * rng_factor * crit_mult
+    raw = base * type_mult * trait_bonus * creativity * rng_factor * crit_mult
     final = max(1, int(round(raw)))
 
     return DamageResult(

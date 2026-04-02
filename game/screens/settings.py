@@ -25,17 +25,19 @@ class SettingsScreen(Screen):
     def draw(self):
         self.buffer.clear()
         t = self.theme
+        W = self.buffer.cols
 
-        self.buffer.write(15, 2, "S E T T I N G S", t.accent_color)
-        self.buffer.write(10, 4, "\u2500" * 30, t.border_color)
-        self.buffer.write(10, 6, "Theme:", t.text_color)
+        center = (W - 15) // 2
+        self.buffer.write(center, 2, "S E T T I N G S", t.accent_color)
+        self.buffer.write(5, 4, "\u2500" * (W - 10), t.border_color)
+        self.buffer.write(5, 6, "Theme:", t.text_color)
 
         for i, name in enumerate(self.themes):
             y = 8 + i * 2
             theme_obj = get_theme(name)
-            prefix = ">" if i == self.selected else " "
+            prefix = "\u25b8" if i == self.selected else " "
             color = t.accent_color if i == self.selected else t.dim_text_color
-            self.buffer.write(10, y, f"{prefix} {theme_obj.display_name}", color)
+            self.buffer.write(5, y, f"{prefix} {theme_obj.display_name}", color)
 
-        self.buffer.write(10, 20, "Enter: select theme", t.dim_text_color)
-        self.buffer.write(10, 21, "ESC: back", t.dim_text_color)
+        self.buffer.write(5, 18, "Enter: select theme", t.dim_text_color)
+        self.buffer.write(5, 19, "ESC: back", t.dim_text_color)

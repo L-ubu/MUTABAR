@@ -31,18 +31,18 @@ def test_clear():
 def test_draw_box():
     buf = TextBuffer(cols=40, rows=30)
     buf.draw_box(0, 0, 10, 5)
-    assert buf.get_char(0, 0) == "┌"
-    assert buf.get_char(9, 0) == "┐"
-    assert buf.get_char(0, 4) == "└"
-    assert buf.get_char(9, 4) == "┘"
+    assert buf.get_char(0, 0) == "\u250c"
+    assert buf.get_char(9, 0) == "\u2510"
+    assert buf.get_char(0, 4) == "\u2514"
+    assert buf.get_char(9, 4) == "\u2518"
 
 
 def test_draw_hp_bar():
     buf = TextBuffer(cols=40, rows=30)
     buf.draw_hp_bar(0, 0, width=10, current=75, maximum=100)
     line = buf.get_line_text(0)
-    assert "█" in line
-    assert "░" in line
+    assert "\u2588" in line
+    assert "\u2591" in line
 
 
 def test_write_wraps_at_boundary():
