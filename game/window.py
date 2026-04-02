@@ -18,9 +18,6 @@ class GameWindow:
         )
         pygame.display.set_caption("MUTABAR")
 
-        # Position below menu bar using SDL2 window API
-        self._reposition()
-
         # Load font
         if font_path and os.path.exists(font_path):
             self.font = pygame.font.Font(font_path, 13)
@@ -30,42 +27,47 @@ class GameWindow:
         self.clock = pygame.time.Clock()
         self.visible = True
 
-        # Hide from Dock, then re-activate so we can receive keyboard input
-        self._setup_as_menubar_app()
+        # Calculate how many rows actually fit
+        self.char_h = self.font.get_linesize()
+        self.max_rows = self.HEIGHT // self.char_h
 
-    def _reposition(self):
-        """Move window to sit below the menu bar, right-aligned."""
+        # macOS setup: hide from Dock, position, and focus
+        self._setup_macos()
+
+    def _setup_macos(self):
+        """Hide from Dock, position below menu bar, grab keyboard focus."""
         import AppKit
 
+        ns_app = AppKit.NSApplication.sharedApplication()
+
+        # Hide from Dock and Cmd+Tab
+        ns_app.setActivationPolicy_(
+            AppKit.NSApplicationActivationPolicyAccessory
+        )
+
+        # Find our NSWindow and position it
         screen = AppKit.NSScreen.mainScreen()
+        screen_height = screen.frame().size.height
         screen_width = int(screen.frame().size.width)
         menu_height = (
-            screen.frame().size.height
+            screen_height
             - screen.visibleFrame().size.height
             - screen.visibleFrame().origin.y
         )
 
         x = screen_width - self.WIDTH - 10
-        y = int(menu_height)
+        # NSWindow y = distance from bottom of screen to bottom of window
+        y = screen_height - int(menu_height) - self.HEIGHT
 
-        from pygame._sdl2.video import Window as SDLWindow
-        sdl_window = SDLWindow.from_display_module()
-        sdl_window.position = (x, y)
-
-    def _setup_as_menubar_app(self):
-        """Hide from Dock but keep keyboard focus for text input."""
-        import AppKit
-
-        ns_app = AppKit.NSApplication.sharedApplication()
-        ns_app.setActivationPolicy_(
-            AppKit.NSApplicationActivationPolicyAccessory
-        )
-        # Re-activate after setting accessory policy so text input works
-        ns_app.activateIgnoringOtherApps_(True)
-        # Make the pygame window the key window
         for win in ns_app.windows():
+            frame = AppKit.NSMakeRect(x, y, self.WIDTH, self.HEIGHT)
+            win.setFrame_display_(frame, True)
+            win.setLevel_(3)  # NSFloatingWindowLevel — stays on top
             win.makeKeyAndOrderFront_(None)
             break
+
+        # Activate so we receive keyboard text input
+        ns_app.activateIgnoringOtherApps_(True)
 
     def focus(self):
         """Bring window to front and give it keyboard focus."""

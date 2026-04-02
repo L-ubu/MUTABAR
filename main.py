@@ -51,7 +51,7 @@ class MutabarApp:
         self.config = MutabarConfig(os.path.join(APP_SUPPORT, "config.json"))
         self.db = MutabarDB(os.path.join(APP_SUPPORT, "mutabar.db"))
         self.theme = get_theme(self.config.theme)
-        self.buffer = TextBuffer(cols=50, rows=35)
+        self.buffer = TextBuffer(cols=50, rows=28)
         self.run_manager = None
         self.current_screen = None
         self._running = True
