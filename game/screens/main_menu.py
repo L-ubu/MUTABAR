@@ -4,7 +4,7 @@ from game.theme import Theme
 
 
 class MainMenuScreen(Screen):
-    ITEMS = ["Start Run", "Settings", "Quit"]
+    ITEMS = ["Start Run", "Mutadex", "Settings", "Quit"]
 
     def __init__(self, buffer: TextBuffer, theme: Theme):
         super().__init__(buffer, theme)
@@ -19,6 +19,8 @@ class MainMenuScreen(Screen):
             item = self.ITEMS[self.selected]
             if item == "Start Run":
                 return "run"
+            elif item == "Mutadex":
+                return "mutadex"
             elif item == "Settings":
                 return "settings"
             elif item == "Quit":

@@ -22,10 +22,17 @@ from game.screens.main_menu import MainMenuScreen
 from game.screens.battle import BattleScreen
 from game.screens.lootbox import LootboxScreen
 from game.screens.settings import SettingsScreen
-from game.battle.engine import Battle
+from game.screens.team_select import TeamSelectScreen, creature_from_db_row
+from game.screens.mutadex import MutadexScreen
+from game.screens.wave_complete import WaveCompleteScreen
+from game.screens.run_over import RunOverScreen
+from game.battle.engine import Battle, BattleState
 from game.progression.run_manager import RunManager
 from game.progression.unlocks import UnlockManager
 from game.progression.lootbox import roll_creature
+from game.progression.mutabox import open_mutabox
+from game.progression.starters import seed_starters_if_needed
+from game.progression.mutagen import calculate_wave_mutagen
 from game.llm.engine import load_model, generate
 from game.llm.prompts import build_battle_prompt
 from persistence.config import MutabarConfig
@@ -62,6 +69,12 @@ class MutabarApp:
         self._window = None
         self._llm_ready = False
         self._llm_loading = False
+        self._run_id = None
+        self._mutagen_run_total = 0
+        self._wave = 0
+        self._idle_notification = None
+
+        seed_starters_if_needed(self.db)
 
     def _setup_status_bar(self):
         """Create macOS status bar icon — clicking M toggles the game window."""
@@ -255,40 +268,107 @@ class MutabarApp:
         self.db.close()
 
     def _switch_screen(self, name: str):
-        completed_runs = len(self.db.load_all_runs())
-        unlock_mgr = UnlockManager(completed_runs)
-
         if name == "quit":
             self._running = False
+
         elif name == "main_menu":
             self.current_screen = MainMenuScreen(self.buffer, self.theme)
+            self.run_manager = None
+            self._run_id = None
+
         elif name == "run":
-            self.run_manager = RunManager(unlock_mgr.unlocked_tiers)
-            self.run_manager.start_new_run()
-            self.run_manager.roll_starting_team()
-            self.run_manager.advance_wave()
-            cpu_team = self.run_manager.generate_cpu_team()
-            for c in self.run_manager.player_team:
-                c.full_heal()
-            battle = Battle(self.run_manager.player_team, cpu_team)
-            self.current_screen = BattleScreen(self.buffer, self.theme, battle, self)
+            self.current_screen = TeamSelectScreen(self.buffer, self.theme, self.db)
+
+        elif name == "start_run":
+            if isinstance(self.current_screen, TeamSelectScreen):
+                team = self.current_screen.selected_team
+                if not team:
+                    return
+                self._run_id = self.db.start_run()
+                self._mutagen_run_total = 0
+                self._wave = 0
+                completed_runs = len(self.db.load_all_runs())
+                unlock_mgr = UnlockManager(completed_runs)
+                self.run_manager = RunManager(unlock_mgr.unlocked_tiers)
+                self.run_manager.start_new_run()
+                self.run_manager.player_team = team
+                self.run_manager.advance_wave()
+                self._wave = self.run_manager.wave
+                cpu_team = self.run_manager.generate_cpu_team()
+                battle = Battle(self.run_manager.player_team, cpu_team)
+                self.current_screen = BattleScreen(self.buffer, self.theme, battle, self)
+
         elif name == "post_battle":
+            # Route based on battle outcome
+            if isinstance(self.current_screen, BattleScreen):
+                if self.current_screen.battle.state == BattleState.PLAYER_WIN:
+                    self._switch_screen("wave_complete")
+                else:
+                    self._switch_screen("run_over")
+            else:
+                self._switch_screen("wave_complete")
+
+        elif name == "wave_complete":
             if self.run_manager:
-                result = roll_creature(
-                    wave=self.run_manager.wave,
-                    unlocked_tiers=self.run_manager.unlocked_tiers,
+                wave_mutagen = calculate_wave_mutagen(self._wave)
+                self._mutagen_run_total += wave_mutagen
+                self.current_screen = WaveCompleteScreen(
+                    self.buffer, self.theme,
+                    wave=self._wave,
+                    mutagen_this_wave=wave_mutagen,
+                    mutagen_run_total=self._mutagen_run_total,
                 )
-                self.current_screen = LootboxScreen(self.buffer, self.theme, result)
-        elif name == "post_lootbox":
+
+        elif name == "next_wave":
             if self.run_manager:
                 self.run_manager.advance_wave()
+                self._wave = self.run_manager.wave
                 cpu_team = self.run_manager.generate_cpu_team()
                 for c in self.run_manager.player_team:
                     c.full_heal()
                 battle = Battle(self.run_manager.player_team, cpu_team)
                 self.current_screen = BattleScreen(self.buffer, self.theme, battle, self)
+
+        elif name == "run_over":
+            if self.run_manager and self._run_id:
+                self.current_screen = RunOverScreen(
+                    self.buffer, self.theme,
+                    waves_survived=self._wave,
+                    mutagen_earned=self._mutagen_run_total,
+                    run_id=self._run_id,
+                    db=self.db,
+                )
+
+        elif name == "mutadex":
+            self.current_screen = MutadexScreen(self.buffer, self.theme, self.db)
+
+        elif name == "open_mutabox":
+            if isinstance(self.current_screen, MutadexScreen) and self.current_screen.pending_mutabox_tier:
+                tier = self.current_screen.pending_mutabox_tier
+                result = open_mutabox(tier)
+                self._last_mutabox_result = result
+                self.current_screen = LootboxScreen(self.buffer, self.theme, result)
+
+        elif name == "post_lootbox":
+            # Save the creature from the last mutabox roll to DB
+            if hasattr(self, '_last_mutabox_result') and self._last_mutabox_result:
+                result = self._last_mutabox_result
+                import json
+                tmpl = result.template
+                self.db.save_creature(
+                    name=tmpl.name, species=tmpl.name,
+                    category=tmpl.category.value.upper(),
+                    mutation_type="FIRE",  # default, templates don't have mutation_type
+                    base_hp=tmpl.base_hp, base_atk=tmpl.base_atk, base_def=tmpl.base_def,
+                    traits_json=json.dumps([t.name for t in tmpl.traits]),
+                    is_shiny=int(result.is_shiny),
+                )
+                self._last_mutabox_result = None
+            self.current_screen = MutadexScreen(self.buffer, self.theme, self.db)
+
         elif name == "settings":
             self.current_screen = SettingsScreen(self.buffer, self.theme, self.config.theme)
+
         elif name == "apply_theme":
             if isinstance(self.current_screen, SettingsScreen) and self.current_screen.changed_theme:
                 self.config.theme = self.current_screen.changed_theme
