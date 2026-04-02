@@ -128,6 +128,7 @@ class RollResult:
     template: CreatureTemplate
     strip: list[CreatureTemplate]
     winner_index: int
+    is_shiny: bool = False
 
 
 # ---------------------------------------------------------------------------
@@ -135,7 +136,14 @@ class RollResult:
 # ---------------------------------------------------------------------------
 
 
-def roll_creature(wave: int, unlocked_tiers: set[str]) -> RollResult:
+_DEFAULT_SHINY_CHANCE: float = 0.01
+
+
+def roll_creature(
+    wave: int, unlocked_tiers: set[str],
+    rarity_weights: dict[Rarity, float] | None = None,
+    shiny_chance: float = _DEFAULT_SHINY_CHANCE,
+) -> RollResult:
     """
     Perform a lootbox roll and return a RollResult.
 
@@ -144,13 +152,13 @@ def roll_creature(wave: int, unlocked_tiers: set[str]) -> RollResult:
     - Builds an animation strip of 20 random creatures with the winner
       inserted near the end (index = size - randint(2, 5)).
     """
-    weights = get_rarity_weights(wave, unlocked_tiers)
+    weights = rarity_weights if rarity_weights is not None else get_rarity_weights(wave, unlocked_tiers)
 
     # Collect available rarities (non-zero weight)
     available_rarities = [r for r, w in weights.items() if w > 0]
-    rarity_weights = [weights[r] for r in available_rarities]
+    available_weights = [weights[r] for r in available_rarities]
 
-    winning_rarity = random.choices(available_rarities, weights=rarity_weights, k=1)[0]
+    winning_rarity = random.choices(available_rarities, weights=available_weights, k=1)[0]
     pool = _RARITY_POOLS[winning_rarity]
     winner = random.choice(pool)
 
@@ -163,9 +171,12 @@ def roll_creature(wave: int, unlocked_tiers: set[str]) -> RollResult:
     strip = list(strip)
     strip.insert(winner_index, winner)
 
+    is_shiny = random.random() < shiny_chance
+
     return RollResult(
         rarity=winning_rarity,
         template=winner,
         strip=strip,
         winner_index=winner_index,
+        is_shiny=is_shiny,
     )
