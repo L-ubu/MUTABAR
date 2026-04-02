@@ -48,7 +48,7 @@ class BattleScreen(Screen):
             self.narration_visible = 0
             self.state = "narrating"
         elif action == Action.BACK:
-            return "run"
+            return "main_menu"
         return None
 
     def update(self, dt: float):
