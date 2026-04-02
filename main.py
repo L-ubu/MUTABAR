@@ -2,6 +2,7 @@ import os
 import sys
 import time
 import threading
+from datetime import datetime, timezone
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
@@ -33,6 +34,8 @@ from game.progression.lootbox import roll_creature
 from game.progression.mutabox import open_mutabox
 from game.progression.starters import seed_starters_if_needed
 from game.progression.mutagen import calculate_wave_mutagen
+from game.audio import SoundManager
+from game.progression.idle import calculate_offline_earnings
 from game.llm.engine import load_model, generate
 from game.llm.prompts import build_battle_prompt
 from persistence.config import MutabarConfig
@@ -73,6 +76,8 @@ class MutabarApp:
         self._mutagen_run_total = 0
         self._wave = 0
         self._idle_notification = None
+
+        self.sound_manager = SoundManager(muted=not self.config.sound_enabled)
 
         seed_starters_if_needed(self.db)
 
@@ -230,7 +235,23 @@ class MutabarApp:
         # Start loading LLM in background
         self._load_llm_async()
 
-        self.current_screen = MainMenuScreen(self.buffer, self.theme)
+        # Collect idle earnings
+        idle_team = self.db.get_idle_team()
+        last_check = self.config.idle_last_check
+        if last_check and idle_team:
+            earned = calculate_offline_earnings(idle_team, last_check)
+            if earned > 0:
+                self.db.add_mutagen(earned)
+                self._idle_notification = earned
+            self.config.idle_last_check = datetime.now(timezone.utc).isoformat()
+            self.config.save()
+        elif not last_check:
+            self.config.idle_last_check = datetime.now(timezone.utc).isoformat()
+            self.config.save()
+
+        notif = self._idle_notification
+        self._idle_notification = None
+        self.current_screen = MainMenuScreen(self.buffer, self.theme, idle_notification=notif)
         last_time = time.time()
 
         while self._running:
@@ -278,7 +299,14 @@ class MutabarApp:
             self._running = False
 
         elif name == "main_menu":
-            self.current_screen = MainMenuScreen(self.buffer, self.theme)
+            # Save sound toggle if coming from settings
+            if isinstance(self.current_screen, SettingsScreen) and self.current_screen.sound_toggled:
+                self.config.sound_enabled = self.current_screen.sound_enabled
+                self.sound_manager.muted = not self.config.sound_enabled
+                self.config.save()
+            notif = self._idle_notification
+            self._idle_notification = None
+            self.current_screen = MainMenuScreen(self.buffer, self.theme, idle_notification=notif)
             self.run_manager = None
             self._run_id = None
 
@@ -373,13 +401,21 @@ class MutabarApp:
             self.current_screen = MutadexScreen(self.buffer, self.theme, self.db)
 
         elif name == "settings":
-            self.current_screen = SettingsScreen(self.buffer, self.theme, self.config.theme)
+            self.current_screen = SettingsScreen(self.buffer, self.theme, self.config.theme,
+                                                 sound_enabled=self.config.sound_enabled)
 
         elif name == "apply_theme":
-            if isinstance(self.current_screen, SettingsScreen) and self.current_screen.changed_theme:
-                self.config.theme = self.current_screen.changed_theme
-                self.config.save()
-                self.theme = get_theme(self.config.theme)
+            if isinstance(self.current_screen, SettingsScreen):
+                # Handle sound toggle
+                if self.current_screen.sound_toggled:
+                    self.config.sound_enabled = self.current_screen.sound_enabled
+                    self.sound_manager.muted = not self.config.sound_enabled
+                    self.config.save()
+                # Handle theme change
+                if self.current_screen.changed_theme:
+                    self.config.theme = self.current_screen.changed_theme
+                    self.config.save()
+                    self.theme = get_theme(self.config.theme)
                 self.current_screen = MainMenuScreen(self.buffer, self.theme)
 
 

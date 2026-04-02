@@ -6,9 +6,10 @@ from game.theme import Theme
 class MainMenuScreen(Screen):
     ITEMS = ["Start Run", "Mutadex", "Settings", "Quit"]
 
-    def __init__(self, buffer: TextBuffer, theme: Theme):
+    def __init__(self, buffer: TextBuffer, theme: Theme, idle_notification: int | None = None):
         super().__init__(buffer, theme)
         self.selected = 0
+        self.idle_notification = idle_notification
 
     def handle_input(self, action: Action, char: str = "") -> str | None:
         if action == Action.UP:
@@ -51,3 +52,6 @@ class MainMenuScreen(Screen):
 
         self.buffer.write(7, 20, "Arrow keys + Enter", t.dim_text_color)
         self.buffer.write(7, 21, "ESC to close", t.dim_text_color)
+
+        if self.idle_notification:
+            self.buffer.write(5, 23, f"Idle: +{self.idle_notification} mutagen!", t.accent_color)
