@@ -3,7 +3,7 @@ import pygame
 
 
 class GameWindow:
-    """Borderless pygame window that acts as a menu bar dropdown."""
+    """Borderless pygame window positioned below the macOS menu bar."""
 
     WIDTH = 400
     HEIGHT = 500
@@ -12,21 +12,16 @@ class GameWindow:
     def __init__(self, font_path: str = None):
         pygame.init()
 
-        # Hide from Dock and Cmd+Tab
-        import AppKit
-        AppKit.NSApplication.sharedApplication().setActivationPolicy_(
-            AppKit.NSApplicationActivationPolicyAccessory
-        )
-
-        # Position below menu bar before creating the window
-        self._position_env()
-
         self.surface = pygame.display.set_mode(
             (self.WIDTH, self.HEIGHT),
             pygame.NOFRAME,
         )
         pygame.display.set_caption("MUTABAR")
 
+        # Position below menu bar using SDL2 window API
+        self._reposition()
+
+        # Load font
         if font_path and os.path.exists(font_path):
             self.font = pygame.font.Font(font_path, 13)
         else:
@@ -35,22 +30,56 @@ class GameWindow:
         self.clock = pygame.time.Clock()
         self.visible = True
 
-    def _position_env(self, x: int = None):
-        """Set SDL_VIDEO_WINDOW_POS to place window below the macOS menu bar."""
+        # Hide from Dock, then re-activate so we can receive keyboard input
+        self._setup_as_menubar_app()
+
+    def _reposition(self):
+        """Move window to sit below the menu bar, right-aligned."""
         import AppKit
+
         screen = AppKit.NSScreen.mainScreen()
+        screen_width = int(screen.frame().size.width)
         menu_height = (
             screen.frame().size.height
             - screen.visibleFrame().size.height
             - screen.visibleFrame().origin.y
         )
-        if x is None:
-            screen_width = int(screen.frame().size.width)
-            x = screen_width - self.WIDTH - 10
-        os.environ["SDL_VIDEO_WINDOW_POS"] = f"{x},{int(menu_height)}"
+
+        x = screen_width - self.WIDTH - 10
+        y = int(menu_height)
+
+        from pygame._sdl2.video import Window as SDLWindow
+        sdl_window = SDLWindow.from_display_module()
+        sdl_window.position = (x, y)
+
+    def _setup_as_menubar_app(self):
+        """Hide from Dock but keep keyboard focus for text input."""
+        import AppKit
+
+        ns_app = AppKit.NSApplication.sharedApplication()
+        ns_app.setActivationPolicy_(
+            AppKit.NSApplicationActivationPolicyAccessory
+        )
+        # Re-activate after setting accessory policy so text input works
+        ns_app.activateIgnoringOtherApps_(True)
+        # Make the pygame window the key window
+        for win in ns_app.windows():
+            win.makeKeyAndOrderFront_(None)
+            break
+
+    def focus(self):
+        """Bring window to front and give it keyboard focus."""
+        import AppKit
+
+        ns_app = AppKit.NSApplication.sharedApplication()
+        ns_app.activateIgnoringOtherApps_(True)
+        for win in ns_app.windows():
+            win.makeKeyAndOrderFront_(None)
+            break
 
     def show(self):
         self.visible = True
+        self.focus()
 
     def hide(self):
         self.visible = False

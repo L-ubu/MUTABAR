@@ -89,6 +89,8 @@ class MutabarApp:
 
     def toggle_visible(self):
         self._visible = not self._visible
+        if self._visible and self._window:
+            self._window.focus()
 
     def request_quit(self):
         self._running = False
