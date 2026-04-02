@@ -1,8 +1,6 @@
 import os
 import pygame
 
-os.environ["SDL_VIDEO_WINDOW_POS"] = "0,0"
-
 
 class GameWindow:
     """Borderless pygame window that acts as a menu bar dropdown."""
@@ -13,6 +11,16 @@ class GameWindow:
 
     def __init__(self, font_path: str = None):
         pygame.init()
+
+        # Hide from Dock and Cmd+Tab
+        import AppKit
+        AppKit.NSApplication.sharedApplication().setActivationPolicy_(
+            AppKit.NSApplicationActivationPolicyAccessory
+        )
+
+        # Position below menu bar before creating the window
+        self._position_env()
+
         self.surface = pygame.display.set_mode(
             (self.WIDTH, self.HEIGHT),
             pygame.NOFRAME,
@@ -25,22 +33,21 @@ class GameWindow:
             self.font = pygame.font.SysFont("Menlo", 13)
 
         self.clock = pygame.time.Clock()
-        self.visible = False
+        self.visible = True
 
-    def position_below_menubar(self, x: int = None):
-        """Position the window below the macOS menu bar."""
+    def _position_env(self, x: int = None):
+        """Set SDL_VIDEO_WINDOW_POS to place window below the macOS menu bar."""
         import AppKit
         screen = AppKit.NSScreen.mainScreen()
-        menu_height = screen.frame().size.height - screen.visibleFrame().size.height - screen.visibleFrame().origin.y
+        menu_height = (
+            screen.frame().size.height
+            - screen.visibleFrame().size.height
+            - screen.visibleFrame().origin.y
+        )
         if x is None:
             screen_width = int(screen.frame().size.width)
             x = screen_width - self.WIDTH - 10
-
         os.environ["SDL_VIDEO_WINDOW_POS"] = f"{x},{int(menu_height)}"
-        self.surface = pygame.display.set_mode(
-            (self.WIDTH, self.HEIGHT),
-            pygame.NOFRAME,
-        )
 
     def show(self):
         self.visible = True
@@ -49,7 +56,7 @@ class GameWindow:
         self.visible = False
 
     def tick(self) -> list:
-        """Process events and return them."""
+        """Process events and return them. Call each frame."""
         self.clock.tick(self.FPS)
         events = []
         for event in pygame.event.get():

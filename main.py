@@ -1,26 +1,28 @@
 import os
 import sys
-import random
-import threading
 import time
 
-import rumps
-
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+
+import objc
+from AppKit import (
+    NSStatusBar,
+    NSVariableStatusItemLength,
+    NSMenu,
+    NSMenuItem,
+)
+from Foundation import NSObject
 
 from game.window import GameWindow
 from game.renderer import TextBuffer
 from game.theme import get_theme
-from game.input_handler import pygame_event_to_action, Action
+from game.input_handler import pygame_event_to_action
 from game.screens.main_menu import MainMenuScreen
 from game.screens.battle import BattleScreen
 from game.screens.lootbox import LootboxScreen
 from game.screens.settings import SettingsScreen
-from game.battle.engine import Battle, BattleState
-from game.battle.cpu_ai import generate_cpu_command
-from game.creatures.creature import Creature, CreatureCategory
-from game.creatures.types import MutationType
-from game.progression.run_manager import RunManager, RunState
+from game.battle.engine import Battle
+from game.progression.run_manager import RunManager
 from game.progression.unlocks import UnlockManager
 from game.progression.lootbox import roll_creature
 from persistence.config import MutabarConfig
@@ -30,38 +32,76 @@ APP_SUPPORT = os.path.expanduser("~/Library/Application Support/MUTABAR")
 os.makedirs(APP_SUPPORT, exist_ok=True)
 
 
-class MutabarApp(rumps.App):
+class StatusBarDelegate(NSObject):
+    """Handles status bar menu clicks via PyObjC."""
+
+    app = objc.ivar()
+
+    def toggleGame_(self, sender):
+        if self.app:
+            self.app.toggle_visible()
+
+    def quitApp_(self, sender):
+        if self.app:
+            self.app.request_quit()
+
+
+class MutabarApp:
     def __init__(self):
-        super().__init__("MUTABAR", title="M")
         self.config = MutabarConfig(os.path.join(APP_SUPPORT, "config.json"))
         self.db = MutabarDB(os.path.join(APP_SUPPORT, "mutabar.db"))
         self.theme = get_theme(self.config.theme)
         self.buffer = TextBuffer(cols=50, rows=35)
-        self._game_thread = None
-        self._running = False
-        self.current_screen = None
         self.run_manager = None
-
-    @rumps.clicked("Toggle Game")
-    def toggle_game(self, _):
-        if self._running:
-            self._running = False
-            return
+        self.current_screen = None
         self._running = True
-        self._game_thread = threading.Thread(target=self._run_game, daemon=True)
-        self._game_thread.start()
+        self._visible = True
+        self._window = None
 
-    @rumps.clicked("Quit")
-    def quit_app(self, _):
+    def _setup_status_bar(self):
+        """Create macOS status bar icon with Toggle/Quit menu."""
+        self._delegate = StatusBarDelegate.alloc().init()
+        self._delegate.app = self
+
+        status_bar = NSStatusBar.systemStatusBar()
+        self._status_item = status_bar.statusItemWithLength_(
+            NSVariableStatusItemLength
+        )
+        self._status_item.setTitle_("M")
+
+        menu = NSMenu.alloc().init()
+
+        toggle_item = NSMenuItem.alloc().initWithTitle_action_keyEquivalent_(
+            "Toggle Game", "toggleGame:", ""
+        )
+        toggle_item.setTarget_(self._delegate)
+        menu.addItem_(toggle_item)
+
+        menu.addItem_(NSMenuItem.separatorItem())
+
+        quit_item = NSMenuItem.alloc().initWithTitle_action_keyEquivalent_(
+            "Quit", "quitApp:", "q"
+        )
+        quit_item.setTarget_(self._delegate)
+        menu.addItem_(quit_item)
+
+        self._status_item.setMenu_(menu)
+
+    def toggle_visible(self):
+        self._visible = not self._visible
+
+    def request_quit(self):
         self._running = False
-        self.db.close()
-        rumps.quit_application()
 
-    def _run_game(self):
-        font_path = os.path.join(os.path.dirname(__file__), "assets", "fonts", "Iosevka-Regular.ttf")
-        window = GameWindow(font_path=font_path)
-        window.position_below_menubar()
-        window.show()
+    def run(self):
+        # Initialize pygame + window on main thread (macOS requirement)
+        font_path = os.path.join(
+            os.path.dirname(__file__), "assets", "fonts", "Iosevka-Regular.ttf"
+        )
+        self._window = GameWindow(font_path=font_path)
+
+        # Set up status bar after pygame init (NSApplication already exists from SDL)
+        self._setup_status_bar()
 
         self.current_screen = MainMenuScreen(self.buffer, self.theme)
         last_time = time.time()
@@ -71,26 +111,33 @@ class MutabarApp(rumps.App):
             dt = now - last_time
             last_time = now
 
-            events = window.tick()
+            # pygame.event.get() pumps the macOS event loop internally,
+            # keeping the status bar menu responsive
+            events = self._window.tick()
             for event_type, event_data in events:
-                if event_type == "quit" or event_type == "focus_lost":
+                if event_type == "quit":
                     self._running = False
+                elif event_type == "focus_lost":
+                    pass  # keep running, user can toggle via status bar
                 elif event_type == "key":
-                    parsed = pygame_event_to_action(event_data)
-                    if parsed:
-                        action, char = parsed
-                        next_screen = self.current_screen.handle_input(action, char)
-                        if next_screen:
-                            self._switch_screen(next_screen)
+                    if self._visible:
+                        parsed = pygame_event_to_action(event_data)
+                        if parsed:
+                            action, char = parsed
+                            result = self.current_screen.handle_input(action, char)
+                            if result:
+                                self._switch_screen(result)
 
-            if self.current_screen:
+            if self._visible and self.current_screen:
                 self.current_screen.update(dt)
                 self.current_screen.draw()
+                self.buffer.render_to_surface(
+                    self._window.surface, self._window.font, self.theme.bg_color
+                )
+                self._window.flip()
 
-            self.buffer.render_to_surface(window.surface, window.font, self.theme.bg_color)
-            window.flip()
-
-        window.quit()
+        self._window.quit()
+        self.db.close()
 
     def _switch_screen(self, name: str):
         completed_runs = len(self.db.load_all_runs())
