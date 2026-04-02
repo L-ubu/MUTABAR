@@ -78,11 +78,11 @@ class LootboxScreen(Screen):
             rc = rarity_colors.get(self.roll.rarity, t.text_color)
             creature = self.roll.template
 
-            self.buffer.draw_box(8, 14, 34, 12, rc)
-            self.buffer.write(12, 15, f"\u2605 {self.roll.rarity.name} \u2605", rc)
-            self.buffer.write(12, 17, creature.name, t.text_color)
-            self.buffer.write(12, 19, "Traits:", t.dim_text_color)
+            self.buffer.draw_box(8, 13, 34, 11, rc)
+            self.buffer.write(12, 14, f"\u2605 {self.roll.rarity.name} \u2605", rc)
+            self.buffer.write(12, 16, creature.name, t.text_color)
+            self.buffer.write(12, 18, "Traits:", t.dim_text_color)
             for j, trait in enumerate(creature.traits[:4]):
-                self.buffer.write(14, 20 + j, f"\u2022 {trait.name}", t.text_color)
+                self.buffer.write(14, 19 + j, f"\u2022 {trait.name}", t.text_color)
 
-            self.buffer.write(10, 28, "[Enter] to continue", t.dim_text_color)
+            self.buffer.write(10, 25, "[Enter] to continue", t.dim_text_color)

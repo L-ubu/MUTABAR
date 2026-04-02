@@ -42,5 +42,5 @@ class MainMenuScreen(Screen):
                 self.buffer.draw_box(8, y - 1, 34, 3, self.theme.border_color)
                 self.buffer.write(10, y, f"  {item}", self.theme.dim_text_color)
 
-        self.buffer.write(10, 30, "Arrow keys + Enter", self.theme.dim_text_color)
-        self.buffer.write(10, 31, "ESC to close", self.theme.dim_text_color)
+        self.buffer.write(10, 22, "Arrow keys + Enter", self.theme.dim_text_color)
+        self.buffer.write(10, 23, "ESC to close", self.theme.dim_text_color)
