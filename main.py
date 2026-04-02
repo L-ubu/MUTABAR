@@ -256,9 +256,15 @@ class MutabarApp:
             if self._visible and self.current_screen:
                 self.current_screen.update(dt)
                 self.current_screen.draw()
-                self.buffer.render_to_surface(
-                    self._window.surface, self._window.font, self.theme.bg_color
-                )
+                if getattr(self.current_screen, 'needs_animation', False):
+                    import time as time_mod
+                    self.buffer.render_to_surface_animated(
+                        self._window.surface, self._window.font, self.theme.bg_color, time_mod.time()
+                    )
+                else:
+                    self.buffer.render_to_surface(
+                        self._window.surface, self._window.font, self.theme.bg_color
+                    )
                 self._window.flip()
             elif not self._visible:
                 # Still tick the clock to keep event loop alive
