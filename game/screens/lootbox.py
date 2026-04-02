@@ -3,6 +3,22 @@ from game.renderer import TextBuffer
 from game.theme import Theme
 from game.progression.lootbox import RollResult, Rarity
 
+_RARITY_COLORS = {
+    Rarity.COMMON: (120, 120, 120),
+    Rarity.UNCOMMON: (158, 206, 106),
+    Rarity.RARE: (122, 162, 247),
+    Rarity.EPIC: (187, 154, 247),
+    Rarity.LEGENDARY: (224, 175, 104),
+}
+
+_RARITY_ANIMATION = {
+    Rarity.COMMON: None,
+    Rarity.UNCOMMON: "pulse",
+    Rarity.RARE: "shimmer",
+    Rarity.EPIC: "glow",
+    Rarity.LEGENDARY: "rainbow",
+}
+
 
 class LootboxScreen(Screen):
     """CS:GO-style rolling lootbox animation."""
@@ -16,14 +32,21 @@ class LootboxScreen(Screen):
         self.offset = 0.0
         self.speed = 25.0
         self.target_offset = float(roll_result.winner_index)
-        self.phase = "rolling"  # "rolling", "reveal"
+        self.phase = "rolling"  # "rolling", "flash", "reveal"
         self.decel_start = self.target_offset - 8.0
         self._reveal_timer = 0.0
+        self.flash_frames = 0
+        self.needs_animation = False
 
     def handle_input(self, action: Action, char: str = "") -> str | None:
         if self.phase == "rolling" and action == Action.CONFIRM:
             self.offset = self.target_offset
-            self.phase = "reveal"
+            if self.roll.is_shiny:
+                self.phase = "flash"
+                self.flash_frames = 3
+            else:
+                self.phase = "reveal"
+                self.needs_animation = True
         elif self.phase == "reveal" and action == Action.CONFIRM:
             return "post_lootbox"
         return None
@@ -36,7 +59,17 @@ class LootboxScreen(Screen):
             self.offset += self.speed * dt
             if self.offset >= self.target_offset:
                 self.offset = self.target_offset
+                if self.roll.is_shiny:
+                    self.phase = "flash"
+                    self.flash_frames = 3
+                else:
+                    self.phase = "reveal"
+                    self.needs_animation = True
+        elif self.phase == "flash":
+            self.flash_frames -= 1
+            if self.flash_frames <= 0:
                 self.phase = "reveal"
+                self.needs_animation = True
         elif self.phase == "reveal":
             self._reveal_timer += dt
 
@@ -44,6 +77,12 @@ class LootboxScreen(Screen):
         self.buffer.clear()
         t = self.theme
         W = self.buffer.cols
+
+        # Shiny flash: fill entire buffer white
+        if self.phase == "flash":
+            for y in range(self.buffer.rows):
+                self.buffer.write(0, y, " " * W, (255, 255, 255))
+            return
 
         center_title = (W - 13) // 2
         self.buffer.write(center_title, 1, "L O O T B O X", t.accent_color)
@@ -68,19 +107,31 @@ class LootboxScreen(Screen):
                 self.buffer.write(x, 7, f" {name} ", color)
 
         if self.phase == "reveal":
-            rarity_colors = {
-                Rarity.COMMON: t.text_color,
-                Rarity.UNCOMMON: (158, 206, 106),
-                Rarity.RARE: (122, 162, 247),
-                Rarity.EPIC: (187, 154, 247),
-                Rarity.LEGENDARY: (224, 175, 104),
-            }
-            rc = rarity_colors.get(self.roll.rarity, t.text_color)
+            rarity = self.roll.rarity
+            rc = _RARITY_COLORS.get(rarity, t.text_color)
+            anim = _RARITY_ANIMATION.get(rarity)
             creature = self.roll.template
 
-            self.buffer.draw_box(4, 11, W - 8, 10, rc)
-            self.buffer.write(7, 12, f"\u2605 {self.roll.rarity.name} \u2605", rc)
-            self.buffer.write(7, 14, creature.name, t.text_color)
+            # Draw box with animation on border chars
+            box_x, box_y, box_w, box_h = 4, 11, W - 8, 10
+            top = "\u250c" + "\u2500" * (box_w - 2) + "\u2510"
+            bot = "\u2514" + "\u2500" * (box_w - 2) + "\u2518"
+            self.buffer.write_animated(box_x, box_y, top, rc, anim)
+            for row in range(1, box_h - 1):
+                self.buffer.write_animated(box_x, box_y + row, "\u2502", rc, anim)
+                self.buffer.write_animated(box_x + box_w - 1, box_y + row, "\u2502", rc, anim)
+            self.buffer.write_animated(box_x, box_y + box_h - 1, bot, rc, anim)
+
+            # Rarity label
+            self.buffer.write_animated(7, 12, f"\u2605 {rarity.name} \u2605", rc, anim)
+
+            # Creature name (shiny gets special prefix and rainbow animation)
+            if self.roll.is_shiny:
+                name_display = f"\u2726 {creature.name}"
+                self.buffer.write_animated(7, 14, name_display, (255, 255, 255), "rainbow")
+            else:
+                self.buffer.write(7, 14, creature.name, t.text_color)
+
             self.buffer.write(7, 16, "Traits:", t.dim_text_color)
             for j, trait in enumerate(creature.traits[:3]):
                 self.buffer.write(9, 17 + j, f"\u2022 {trait.name}", t.text_color)
