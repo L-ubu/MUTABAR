@@ -44,7 +44,7 @@ class BattleScreen(Screen):
             self.command_input = self.command_input[:-1]
         elif action == Action.CONFIRM and self.command_input.strip():
             self.last_result = self.battle.execute_player_turn(self.command_input)
-            self.narration_text = f"The {self.battle.player_active.mutation_type.type_name} {self.battle.player_active.name} attacks! {self.last_result.damage_dealt} damage dealt."
+            self.narration_text = f"The {self.battle.player_active.mutation_type.name} {self.battle.player_active.name} attacks! {self.last_result.damage_dealt} damage dealt."
             self.narration_visible = 0
             self.state = "narrating"
         elif action == Action.BACK:
@@ -72,8 +72,8 @@ class BattleScreen(Screen):
 
         # Player monster (left)
         p_color = t.type_colors.get(p.mutation_type, t.text_color)
-        self.buffer.write(2, 3, p.mutation_type.type_name, p_color)
-        self.buffer.write(2 + len(p.mutation_type.type_name) + 1, 3, p.name, t.text_color)
+        self.buffer.write(2, 3, p.mutation_type.name, p_color)
+        self.buffer.write(2 + len(p.mutation_type.name) + 1, 3, p.name, t.text_color)
         self.buffer.write(2, 4, "HP ", t.dim_text_color)
         self.buffer.draw_hp_bar(5, 4, 15, p.current_hp, p.max_hp)
         self.buffer.write(21, 4, f" {p.current_hp}/{p.max_hp}", t.dim_text_color)
@@ -81,8 +81,8 @@ class BattleScreen(Screen):
         # CPU monster (right)
         c_color = t.type_colors.get(c.mutation_type, t.text_color)
         rx = 28
-        self.buffer.write(rx, 3, c.mutation_type.type_name, c_color)
-        self.buffer.write(rx + len(c.mutation_type.type_name) + 1, 3, c.name, t.text_color)
+        self.buffer.write(rx, 3, c.mutation_type.name, c_color)
+        self.buffer.write(rx + len(c.mutation_type.name) + 1, 3, c.name, t.text_color)
         self.buffer.write(rx, 4, "HP ", t.dim_text_color)
         self.buffer.draw_hp_bar(rx + 3, 4, 15, c.current_hp, c.max_hp)
 
