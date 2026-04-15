@@ -34,6 +34,20 @@ def _apply_animation(color: tuple[int, int, int], animation: str | None,
     elif animation == "rainbow":
         hue = (t * 0.5 + x * 0.05 + y * 0.02) % 1.0
         return _hsv_to_rgb(hue, 0.8, 1.0)
+    elif animation == "golden":
+        # Warm gold with a gentle wave between amber and bright gold
+        wave = 0.8 + 0.2 * math.sin(t * 2.5 + x * 0.3)
+        return (min(255, int(255 * wave)),
+                min(255, int(195 * wave)),
+                min(255, int(80 * wave * 0.6)))
+    elif animation == "legendary":
+        # Slow rainbow with high saturation — majestic
+        hue = (t * 0.3 + x * 0.04) % 1.0
+        return _hsv_to_rgb(hue, 0.6, 1.0)
+    elif animation == "mutagen":
+        # Toxic green pulse with electric flicker
+        flicker = 0.7 + 0.3 * math.sin(t * 5 + x * 0.8)
+        return (0, min(255, int(255 * flicker)), min(255, int(130 * flicker)))
     return color
 
 
@@ -117,7 +131,7 @@ class TextBuffer:
             for x, cell in enumerate(row):
                 if cell.char != " ":
                     rendered = font.render(cell.char, True, cell.color)
-                    surface.blit(rendered, (x * char_w, y * char_h))
+                    surface.blit(rendered, (6 + x * char_w, 6 + y * char_h))
 
     def render_to_surface_animated(self, surface, font, bg_color: tuple[int, int, int], t: float):
         """Render with animation transforms applied based on time."""
@@ -130,4 +144,4 @@ class TextBuffer:
                 if cell.char != " ":
                     color = _apply_animation(cell.color, cell.animation, t, x, y)
                     rendered = font.render(cell.char, True, color)
-                    surface.blit(rendered, (x * char_w, y * char_h))
+                    surface.blit(rendered, (6 + x * char_w, 6 + y * char_h))
