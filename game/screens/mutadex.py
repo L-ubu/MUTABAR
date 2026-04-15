@@ -2,6 +2,7 @@ from game.screens.base import Screen, Action
 from game.renderer import TextBuffer
 from game.theme import Theme
 from game.creatures.database import CREATURE_ROSTER
+from game.creatures.ascii_art import get_art
 from game.progression.mutabox import MutaboxTier
 from game.progression.lootbox import _get_creature_rarity, Rarity
 
@@ -12,6 +13,7 @@ _RARITY_COLORS = {
     Rarity.RARE: (122, 162, 247),
     Rarity.EPIC: (187, 154, 247),
     Rarity.LEGENDARY: (224, 175, 104),
+    Rarity.MUTAGEN: (0, 255, 130),
 }
 
 _SHOP_ITEMS = [
@@ -20,7 +22,7 @@ _SHOP_ITEMS = [
     ("Shiny Mutabox", "5x shiny chance!", MutaboxTier.SHINY),
 ]
 
-_COLLECTION_VISIBLE = 16  # rows y=4..y=19
+_COLLECTION_VISIBLE = 12
 
 
 class MutadexScreen(Screen):
@@ -30,15 +32,12 @@ class MutadexScreen(Screen):
         super().__init__(buffer, theme)
         self.db = db
         self.active_tab = 0
-        # Collection state
         self.scroll = 0
         self.cursor = 0
-        self.detail_creature = None  # None = list view, dict = detail view
+        self.detail_creature = None
         self.roster = sorted(CREATURE_ROSTER, key=lambda t: t.name)
-        # Shop state
         self.shop_cursor = 0
-        self.pending_mutabox_tier = None  # set before returning "open_mutabox"
-        # Idle state
+        self.pending_mutabox_tier = None
         self.idle_cursor = 0
         self.idle_picking = False
         self.idle_pick_cursor = 0
@@ -87,7 +86,6 @@ class MutadexScreen(Screen):
 
     def _handle_collection(self, action: Action) -> str | None:
         if self.detail_creature:
-            # Detail view: any navigation or confirm closes it
             if action in (Action.CONFIRM, Action.UP, Action.DOWN):
                 self.detail_creature = None
             return None
@@ -144,13 +142,12 @@ class MutadexScreen(Screen):
         slots_filled = {entry["slot"]: entry for entry in idle_team}
 
         if self.idle_picking:
-            # Build pick list: all collection minus already-idle monsters
             idle_ids = self.db.get_idle_monster_ids()
             all_monsters = self.db.get_collection()
             eligible = [m for m in all_monsters if m["id"] not in idle_ids]
 
             n = len(eligible)
-            visible = 14
+            visible = 10
             if action == Action.UP:
                 self.idle_pick_cursor = max(0, self.idle_pick_cursor - 1)
                 if self.idle_pick_cursor < self.idle_pick_scroll:
@@ -161,14 +158,13 @@ class MutadexScreen(Screen):
                     self.idle_pick_scroll = self.idle_pick_cursor - visible + 1
             elif action == Action.CONFIRM and eligible:
                 chosen = eligible[self.idle_pick_cursor]
-                slot = self.idle_cursor + 1  # slots are 1-indexed
+                slot = self.idle_cursor + 1
                 self.db.set_idle_slot(slot, chosen["id"])
                 self.idle_picking = False
                 self.idle_pick_cursor = 0
                 self.idle_pick_scroll = 0
             return None
 
-        # Normal idle slot navigation
         if action == Action.UP:
             self.idle_cursor = max(0, self.idle_cursor - 1)
         elif action == Action.DOWN:
@@ -178,7 +174,6 @@ class MutadexScreen(Screen):
             if slot in slots_filled:
                 self.db.clear_idle_slot(slot)
             else:
-                # Enter pick mode
                 self.idle_picking = True
                 self.idle_pick_cursor = 0
                 self.idle_pick_scroll = 0
@@ -191,10 +186,6 @@ class MutadexScreen(Screen):
     def _handle_stats(self, action: Action) -> str | None:
         return None
 
-    # ------------------------------------------------------------------
-    # Update
-    # ------------------------------------------------------------------
-
     def update(self, dt: float):
         pass
 
@@ -206,15 +197,16 @@ class MutadexScreen(Screen):
         self.buffer.clear()
         t = self.theme
         W = self.buffer.cols
+        H = self.buffer.rows
 
-        # Tab bar at row 0
-        x = 2
+        # Tab bar
+        x = 1
         for i, tab in enumerate(self.TABS):
             color = t.accent_color if i == self.active_tab else t.dim_text_color
             label = f"[{tab}]" if i == self.active_tab else f" {tab} "
             self.buffer.write(x, 0, label, color)
             x += len(label) + 1
-        self.buffer.write(2, 1, "\u2500" * (W - 4), t.border_color)
+        self.buffer.write(1, 1, "\u2500" * (W - 2), t.border_color)
 
         drawers = [
             self._draw_collection,
@@ -232,20 +224,18 @@ class MutadexScreen(Screen):
         t = self.theme
         W = self.buffer.cols
         discovered = self.db.get_discovered_species()
-        n_discovered = len(discovered)
+        collection = self.db.get_collection()
+        species_counts = {}
+        for m in collection:
+            sp = m.get("species", "")
+            species_counts[sp] = species_counts.get(sp, 0) + 1
 
         if self.detail_creature:
             self._draw_collection_detail(self.detail_creature)
             return
 
-        # Header
-        header = f"Collection: {n_discovered}/53 discovered"
-        self.buffer.write(2, 2, header, t.text_color)
-        self.buffer.write(2, 3, "\u2500" * (W - 4), t.border_color)
-
-        # Column headings
-        self.buffer.write(4, 3, " Name", t.dim_text_color)
-        self.buffer.write(22, 3, "Rarity", t.dim_text_color)
+        self.buffer.write(1, 2, f"{len(discovered)}/{len(self.roster)}", t.accent_color)
+        self.buffer.write(1, 3, "\u2500" * (W - 2), t.border_color)
 
         for row_idx in range(_COLLECTION_VISIBLE):
             roster_idx = self.scroll + row_idx
@@ -259,25 +249,25 @@ class MutadexScreen(Screen):
             if template.name in discovered:
                 rarity = _get_creature_rarity(template)
                 rarity_color = _RARITY_COLORS.get(rarity, t.text_color)
-                rarity_name = rarity.name.capitalize()
-                name_col = t.highlight_color if is_cursor else t.text_color
-                self.buffer.write(2, y, cursor_ch, t.accent_color)
-                self.buffer.write(4, y, f"{template.name:<16}", name_col)
-                self.buffer.write(21, y, f"{rarity_name:<10}", rarity_color)
+                name_col = rarity_color if is_cursor else t.text_color
+                self.buffer.write(1, y, cursor_ch, t.accent_color if is_cursor else t.dim_text_color)
+                self.buffer.write(3, y, f"{template.name:<13}", name_col)
+                self.buffer.write(17, y, rarity.name[:6], rarity_color)
+                count = species_counts.get(template.name, 0)
+                if count > 1:
+                    self.buffer.write(W - 4, y, f"x{count}", t.dim_text_color)
             else:
                 dim = t.dim_text_color
-                self.buffer.write(2, y, cursor_ch, dim)
-                self.buffer.write(4, y, "???             ", dim)
-                self.buffer.write(21, y, "???       ", dim)
+                self.buffer.write(1, y, cursor_ch, dim)
+                self.buffer.write(3, y, "???", dim)
 
-        # Scroll indicators
         if self.scroll > 0:
-            self.buffer.write(W - 4, 4, "\u2191", t.dim_text_color)
+            self.buffer.write(W - 2, 4, "\u2191", t.dim_text_color)
         if self.scroll + _COLLECTION_VISIBLE < len(self.roster):
-            self.buffer.write(W - 4, 4 + _COLLECTION_VISIBLE - 1, "\u2193", t.dim_text_color)
+            self.buffer.write(W - 2, 4 + _COLLECTION_VISIBLE - 1, "\u2193", t.dim_text_color)
 
-        self.buffer.write(2, 21, "\u2500" * (W - 4), t.border_color)
-        self.buffer.write(2, 22, "[Enter] View details  [\u2190\u2192] Switch tabs", t.dim_text_color)
+        self.buffer.write(1, 17, "\u2500" * (W - 2), t.border_color)
+        self.buffer.write(1, 18, "[Enter] Details [\u2190\u2192] Tabs", t.dim_text_color)
 
     def _draw_collection_detail(self, detail: dict):
         t = self.theme
@@ -285,36 +275,59 @@ class MutadexScreen(Screen):
         template = detail["template"]
         rarity = detail["rarity"]
         rarity_color = _RARITY_COLORS.get(rarity, t.text_color)
+        is_shiny = detail["shiny_count"] > 0
 
-        self.buffer.draw_box(2, 2, W - 4, 22, t.border_color)
-        self.buffer.write(4, 3, template.name, t.highlight_color)
-        self.buffer.write(4, 4, f"Rarity: {rarity.name.capitalize()}", rarity_color)
-        self.buffer.write(4, 5, f"Category: {template.category.value.capitalize()}", t.dim_text_color)
-        self.buffer.write(4, 6, "\u2500" * (W - 8), t.border_color)
+        # Pick animation based on rarity / shiny
+        anim = None
+        if is_shiny:
+            anim = "golden"
+        elif rarity == Rarity.LEGENDARY:
+            anim = "legendary"
+        elif rarity == Rarity.MUTAGEN:
+            anim = "mutagen"
+        elif rarity == Rarity.EPIC:
+            anim = "glow"
 
-        # Base stats
-        self.buffer.write(4, 7, "Base Stats:", t.text_color)
-        self.buffer.write(4, 8, f"  HP:  {template.base_hp}", t.text_color)
-        self.buffer.write(4, 9, f"  ATK: {template.base_atk}", t.text_color)
-        self.buffer.write(4, 10, f"  DEF: {template.base_def}", t.text_color)
-        self.buffer.write(4, 11, "\u2500" * (W - 8), t.border_color)
+        # Animated box border for special rarities
+        if anim:
+            # Draw box manually with animation
+            top = "\u250c" + "\u2500" * (W - 4) + "\u2510"
+            bot = "\u2514" + "\u2500" * (W - 4) + "\u2518"
+            self.buffer.write_animated(1, 2, top, rarity_color, anim)
+            for row in range(1, 15):
+                self.buffer.write_animated(1, 2 + row, "\u2502", rarity_color, anim)
+                self.buffer.write_animated(W - 2, 2 + row, "\u2502", rarity_color, anim)
+            self.buffer.write_animated(1, 17, bot, rarity_color, anim)
+        else:
+            self.buffer.draw_box(1, 2, W - 2, 16, rarity_color)
 
-        # Traits
-        self.buffer.write(4, 12, "Traits:", t.text_color)
-        for i, trait in enumerate(template.traits):
-            if i >= 4:
-                break
-            self.buffer.write(4, 13 + i, f"  \u2022 {trait.name}", t.dim_text_color)
-
-        trait_end_y = 13 + min(len(template.traits), 4)
-        self.buffer.write(4, trait_end_y, "\u2500" * (W - 8), t.border_color)
-
-        # Owned counts
-        self.buffer.write(4, trait_end_y + 1, f"Owned: {detail['count']}", t.text_color)
+        # Name with animation for special creatures
+        if anim:
+            self.buffer.write_animated(3, 3, template.name, rarity_color, anim)
+        else:
+            self.buffer.write(3, 3, template.name, rarity_color)
+        self.buffer.write(3, 4, f"{rarity.name.capitalize()} \u2022 {template.category.value.capitalize()}", t.dim_text_color)
+        self.buffer.write(2, 5, "\u2500" * (W - 4), t.border_color)
+        # ASCII art (5 lines, centered) — animated for special creatures
+        art = get_art(template.name)
+        art_color = (255, 200, 80) if is_shiny else rarity_color
+        for i, line in enumerate(art):
+            ax = max(3, (W - len(line)) // 2)
+            if anim:
+                self.buffer.write_animated(ax, 6 + i, line, art_color, anim)
+            else:
+                self.buffer.write(ax, 6 + i, line, rarity_color)
+        self.buffer.write(2, 11, "\u2500" * (W - 4), t.border_color)
+        self.buffer.write(3, 12, f"HP:{template.base_hp} ATK:{template.base_atk} DEF:{template.base_def}", t.text_color)
+        for i, trait in enumerate(template.traits[:3]):
+            self.buffer.write(3, 13 + i, f"\u2022 {trait.name}", t.dim_text_color)
+        self.buffer.write(2, 16, "\u2500" * (W - 4), t.border_color)
+        owned_str = f"Owned: {detail['count']}"
+        shiny_str = f"\u2605 {detail['shiny_count']}"
         shiny_color = (224, 175, 104) if detail["shiny_count"] > 0 else t.dim_text_color
-        self.buffer.write(4, trait_end_y + 2, f"\u2605 Shiny: {detail['shiny_count']}", shiny_color)
-
-        self.buffer.write(4, 22, "[ESC/Enter] Back", t.dim_text_color)
+        self.buffer.write(3, 17, owned_str, t.text_color)
+        self.buffer.write(W - 2 - len(shiny_str), 17, shiny_str, shiny_color)
+        self.buffer.write(3, 19, "[ESC] Back", t.dim_text_color)
 
     # ------------------------------------------------------------------
     # Tab 1: Shop — draw
@@ -325,26 +338,26 @@ class MutadexScreen(Screen):
         W = self.buffer.cols
         mutagen = self.db.get_mutagen()
 
-        self.buffer.write(2, 2, f"Mutagen: {mutagen:,}", t.accent_color)
-        self.buffer.write(2, 3, "\u2500" * (W - 4), t.border_color)
+        self.buffer.write(1, 2, f"Mutagen: {mutagen:,}", t.accent_color)
+        self.buffer.write(1, 3, "\u2500" * (W - 2), t.border_color)
 
+        tier_colors = [(169, 177, 214), (122, 162, 247), (224, 175, 104)]
         for i, (name, subtitle, tier) in enumerate(_SHOP_ITEMS):
-            y = 5 + i * 5
+            y = 4 + i * 5
             cost = tier.cost
             affordable = mutagen >= cost
-            cursor_ch = "\u25b8" if i == self.shop_cursor else " "
-            box_color = t.accent_color if i == self.shop_cursor else t.border_color
-            name_color = t.text_color if affordable else t.dim_text_color
-            cost_color = t.highlight_color if affordable else t.dim_text_color
+            is_cur = i == self.shop_cursor
+            box_color = tier_colors[i] if is_cur else t.border_color
+            name_color = tier_colors[i] if affordable else t.dim_text_color
 
-            self.buffer.draw_box(3, y - 1, W - 6, 4, box_color)
-            self.buffer.write(5, y, f"{cursor_ch} {name}", name_color)
-            self.buffer.write(5, y + 1, f"  {subtitle}", t.dim_text_color)
-            cost_str = f"{cost:,} mutagen"
-            self.buffer.write(W - 4 - len(cost_str), y, cost_str, cost_color)
+            self.buffer.draw_box(1, y, W - 2, 4, box_color)
+            cursor_ch = "\u25b8" if is_cur else " "
+            self.buffer.write(3, y + 1, f"{cursor_ch} {name}", name_color)
+            cost_str = f"{cost:,}m"
+            self.buffer.write(W - 2 - len(cost_str), y + 1, cost_str, t.highlight_color if affordable else t.dim_text_color)
+            self.buffer.write(5, y + 2, subtitle, t.dim_text_color)
 
-        self.buffer.write(2, 20, "\u2500" * (W - 4), t.border_color)
-        self.buffer.write(2, 21, "[Enter] Purchase  [\u2190\u2192] Switch tabs", t.dim_text_color)
+        self.buffer.write(1, 20, "[Enter] Buy [\u2190\u2192] Tabs", t.dim_text_color)
 
     # ------------------------------------------------------------------
     # Tab 2: Idle Arena — draw
@@ -360,37 +373,40 @@ class MutadexScreen(Screen):
             self._draw_idle_pick()
             return
 
-        self.buffer.write(2, 2, "Idle Arena  (3 slots)", t.text_color)
-        self.buffer.write(2, 3, "\u2500" * (W - 4), t.border_color)
+        self.buffer.write(1, 2, "Idle Arena", t.accent_color)
+        self.buffer.write(1, 3, "\u2500" * (W - 2), t.border_color)
 
         for slot_idx in range(3):
             slot = slot_idx + 1
-            y = 5 + slot_idx * 5
+            y = 4 + slot_idx * 5
             is_cursor = (slot_idx == self.idle_cursor)
             box_color = t.accent_color if is_cursor else t.border_color
             cursor_ch = "\u25b8" if is_cursor else " "
 
-            self.buffer.draw_box(3, y - 1, W - 6, 4, box_color)
+            self.buffer.draw_box(1, y, W - 2, 4, box_color)
             if slot in slots_filled:
                 m = slots_filled[slot]
                 shiny_mark = " \u2605" if m.get("is_shiny") else ""
                 name_disp = f"{m['name']}{shiny_mark}"
                 name_color = (224, 175, 104) if m.get("is_shiny") else t.text_color
-                self.buffer.write(5, y, f"{cursor_ch} Slot {slot}: {name_disp}", name_color)
-                stats = f"HP:{m.get('hp', '?')} ATK:{m.get('atk', '?')} DEF:{m.get('defense', '?')}"
-                self.buffer.write(7, y + 1, stats, t.dim_text_color)
-                self.buffer.write(W - 16, y, "[Enter] Remove", t.dim_text_color)
+                self.buffer.write(3, y + 1, f"{cursor_ch} {name_disp}", name_color)
+                hp = m.get("hp", 0)
+                atk = m.get("atk", 0)
+                defense = m.get("defense", 0)
+                c_rate = (hp + atk + defense) / 20.0
+                if m.get("is_shiny"):
+                    c_rate *= 1.15
+                stats = f"HP:{hp} ATK:{atk} \u2192{c_rate:.1f}/m"
+                self.buffer.write(3, y + 2, f"  {stats}", t.dim_text_color)
             else:
-                self.buffer.write(5, y, f"{cursor_ch} Slot {slot}: [Empty Slot]", t.dim_text_color)
-                self.buffer.write(W - 16, y, "[Enter] Assign", t.dim_text_color)
+                self.buffer.write(3, y + 1, f"{cursor_ch} [Empty]", t.dim_text_color)
 
-        # Earnings rate at bottom
+        from game.progression.idle import calculate_idle_rate
+        creatures = list(slots_filled.values())
+        rate = calculate_idle_rate(creatures)
         n_active = len(slots_filled)
-        earnings_rate = n_active * 5  # 5 mutagen/min per slot (placeholder rate)
-        self.buffer.write(2, 19, "\u2500" * (W - 4), t.border_color)
-        self.buffer.write(2, 20, f"Earnings: ~{earnings_rate} mutagen/min  ({n_active}/3 active)", t.dim_text_color)
-        self.buffer.write(2, 21, "\u2500" * (W - 4), t.border_color)
-        self.buffer.write(2, 22, "[Enter] Assign/Remove  [\u2190\u2192] Switch tabs", t.dim_text_color)
+        self.buffer.write(1, 19, f"~{rate:.1f} mutagen/min ({n_active}/3)", t.dim_text_color)
+        self.buffer.write(1, 20, "[Enter] Assign/Remove", t.dim_text_color)
 
     def _draw_idle_pick(self):
         t = self.theme
@@ -399,12 +415,12 @@ class MutadexScreen(Screen):
         all_monsters = self.db.get_collection()
         eligible = [m for m in all_monsters if m["id"] not in idle_ids]
 
-        self.buffer.write(2, 2, f"Choose creature for Slot {self.idle_cursor + 1}", t.accent_color)
-        self.buffer.write(2, 3, "\u2500" * (W - 4), t.border_color)
+        self.buffer.write(1, 2, f"Pick for Slot {self.idle_cursor + 1}", t.accent_color)
+        self.buffer.write(1, 3, "\u2500" * (W - 2), t.border_color)
 
-        visible = 14
+        visible = 10
         if not eligible:
-            self.buffer.write(4, 6, "No eligible creatures available.", t.dim_text_color)
+            self.buffer.write(3, 6, "No creatures.", t.dim_text_color)
         else:
             for row_idx in range(visible):
                 m_idx = self.idle_pick_scroll + row_idx
@@ -416,20 +432,25 @@ class MutadexScreen(Screen):
                 cursor_ch = "\u25b8 " if is_cursor else "  "
                 shiny_mark = " \u2605" if m.get("is_shiny") else ""
                 name_disp = f"{m['name']}{shiny_mark}"
-                name_color = (224, 175, 104) if m.get("is_shiny") else (t.highlight_color if is_cursor else t.text_color)
-                stats = f"HP:{m.get('hp', '?')} ATK:{m.get('atk', '?')}"
-                self.buffer.write(2, y, cursor_ch, t.accent_color)
-                self.buffer.write(4, y, f"{name_disp:<18}", name_color)
-                self.buffer.write(23, y, stats, t.dim_text_color)
+                name_color = (224, 175, 104) if m.get("is_shiny") else (t.accent_color if is_cursor else t.text_color)
+                # Per-creature idle rate
+                hp = m.get("hp", 0)
+                atk = m.get("atk", 0)
+                defense = m.get("defense", 0)
+                rate = (hp + atk + defense) / 20.0
+                if m.get("is_shiny"):
+                    rate *= 1.15
+                rate_str = f" {rate:.1f}/m"
+                self.buffer.write(1, y, cursor_ch, t.accent_color)
+                self.buffer.write(3, y, name_disp, name_color)
+                self.buffer.write(W - len(rate_str) - 1, y, rate_str, t.dim_text_color)
 
-        # Scroll indicators
         if self.idle_pick_scroll > 0:
-            self.buffer.write(W - 4, 4, "\u2191", t.dim_text_color)
+            self.buffer.write(W - 2, 4, "\u2191", t.dim_text_color)
         if self.idle_pick_scroll + visible < len(eligible):
-            self.buffer.write(W - 4, 4 + visible - 1, "\u2193", t.dim_text_color)
+            self.buffer.write(W - 2, 4 + visible - 1, "\u2193", t.dim_text_color)
 
-        self.buffer.write(2, 19, "\u2500" * (W - 4), t.border_color)
-        self.buffer.write(2, 20, "[Enter] Assign  [ESC] Cancel", t.dim_text_color)
+        self.buffer.write(1, 20, "[Enter] Assign [ESC] Back", t.dim_text_color)
 
     # ------------------------------------------------------------------
     # Tab 3: Stats — draw
@@ -440,23 +461,21 @@ class MutadexScreen(Screen):
         W = self.buffer.cols
         stats = self.db.get_stats()
 
-        self.buffer.write(2, 2, "Statistics", t.text_color)
-        self.buffer.write(2, 3, "\u2500" * (W - 4), t.border_color)
+        self.buffer.write(1, 2, "Statistics", t.accent_color)
+        self.buffer.write(1, 3, "\u2500" * (W - 2), t.border_color)
 
         rows = [
-            ("Creatures discovered", f"{stats['creatures_discovered']}/53"),
-            ("Shinies found", str(stats["shinies_found"])),
-            ("Runs completed", str(stats["runs_completed"])),
-            ("Highest wave", str(stats["highest_wave"])),
-            ("Total mutagen", f"{stats['total_mutagen']:,}"),
+            ("Discovered", f"{stats['creatures_discovered']}/{len(self.roster)}"),
+            ("Shinies", str(stats["shinies_found"])),
+            ("Runs", str(stats["runs_completed"])),
+            ("Best wave", str(stats["highest_wave"])),
+            ("Mutagen", f"{stats['total_mutagen']:,}"),
         ]
 
         for i, (label, value) in enumerate(rows):
             y = 5 + i * 3
-            self.buffer.draw_box(3, y - 1, W - 6, 3, t.border_color)
-            self.buffer.write(5, y, label, t.dim_text_color)
-            value_x = W - 4 - len(value)
-            self.buffer.write(value_x, y, value, t.accent_color)
+            self.buffer.draw_box(1, y - 1, W - 2, 3, t.border_color)
+            self.buffer.write(3, y, label, t.dim_text_color)
+            self.buffer.write(W - 2 - len(value), y, value, t.accent_color)
 
-        self.buffer.write(2, 21, "\u2500" * (W - 4), t.border_color)
-        self.buffer.write(2, 22, "[\u2190\u2192] Switch tabs", t.dim_text_color)
+        self.buffer.write(1, 20, "[\u2190\u2192] Tabs", t.dim_text_color)

@@ -52,8 +52,9 @@ class TeamSelectScreen(Screen):
                 self.scroll = self.cursor
         elif action == Action.DOWN:
             self.cursor = min(len(self.available) - 1, self.cursor + 1)
-            if self.cursor >= self.scroll + 14:
-                self.scroll = self.cursor - 13
+            visible = self.buffer.rows - 6
+            if self.cursor >= self.scroll + visible:
+                self.scroll = self.cursor - visible + 1
         elif action == Action.CONFIRM:
             if self.cursor in self.selected_indices:
                 self.selected_indices.discard(self.cursor)
@@ -67,12 +68,14 @@ class TeamSelectScreen(Screen):
         self.buffer.clear()
         t = self.theme
         W = self.buffer.cols
-        self.buffer.write(2, 0, "SELECT YOUR TEAM (1-3)", t.accent_color)
-        self.buffer.write(2, 1, "─" * (W - 4), t.border_color)
-        self.buffer.write(2, 2, f"Selected: {len(self.selected_indices)}/3", t.text_color)
+        H = self.buffer.rows
+        self.buffer.write(1, 1, "SELECT TEAM (1-3)", t.accent_color)
+        sel_text = f"{len(self.selected_indices)}/3"
+        self.buffer.write(W - 1 - len(sel_text), 1, sel_text, t.highlight_color)
+        self.buffer.write(1, 2, "\u2500" * (W - 2), t.border_color)
 
-        max_visible = 14
-        for vi in range(max_visible):
+        visible = H - 6
+        for vi in range(visible):
             idx = self.scroll + vi
             if idx >= len(self.available):
                 break
@@ -80,15 +83,15 @@ class TeamSelectScreen(Screen):
             y = 4 + vi
             is_sel = idx in self.selected_indices
             is_cur = idx == self.cursor
-            prefix = "★" if is_sel else "▸" if is_cur else " "
-            shiny = " ✦" if m.get("is_shiny") else ""
-            name = m["name"]
-            mtype = (m.get("mutation_type") or "???")[:4]
-            stats = f"{m.get('hp', '?')}/{m.get('atk', '?')}/{m.get('defense', '?')}"
-            line = f"{prefix} {name:<12} {mtype:<5} {stats}{shiny}"
-            color = t.accent_color if is_cur else t.text_color
-            self.buffer.write(2, y, line, color)
+            prefix = "\u2605" if is_sel else "\u25b8" if is_cur else " "
+            shiny = "\u2726" if m.get("is_shiny") else ""
+            name = m["name"][:10]
+            hp = m.get("hp", "?")
+            atk = m.get("atk", "?")
+            color = t.accent_color if is_cur else (t.highlight_color if is_sel else t.text_color)
+            self.buffer.write(1, y, f"{prefix} {name:<11}{shiny}", color)
+            self.buffer.write(W - 11, y, f"{hp}/{atk}", t.dim_text_color)
 
         if self.selected_indices:
-            self.buffer.write(2, 20, "[S] Start Run", t.accent_color)
-        self.buffer.write(2, 21, "Enter: toggle  ESC: back", t.dim_text_color)
+            self.buffer.write(1, H - 2, "[S] Start Run", t.accent_color)
+        self.buffer.write(1, H - 1, "Enter:toggle ESC:back", t.dim_text_color)

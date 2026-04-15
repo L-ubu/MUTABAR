@@ -20,11 +20,14 @@ class WaveCompleteScreen(Screen):
         self.buffer.clear()
         t = self.theme
         W = self.buffer.cols
+        H = self.buffer.rows
         title = f"Wave {self.wave} Cleared!"
-        self.buffer.write((W - len(title)) // 2, 8, title, t.accent_color)
+        self.buffer.write((W - len(title)) // 2, 4, title, t.accent_color)
+        self.buffer.write(1, 6, "\u2500" * (W - 2), t.border_color)
         earned = f"+{self.mutagen_this_wave} mutagen"
-        self.buffer.write((W - len(earned)) // 2, 11, earned, t.text_color)
-        total = f"Run total: {self.mutagen_run_total} mutagen"
-        self.buffer.write((W - len(total)) // 2, 13, total, t.dim_text_color)
+        self.buffer.write((W - len(earned)) // 2, 8, earned, t.highlight_color)
+        total = f"Run total: {self.mutagen_run_total}"
+        self.buffer.write((W - len(total)) // 2, 10, total, t.dim_text_color)
+        self.buffer.write(1, 12, "\u2500" * (W - 2), t.border_color)
         hint = "[Enter] Next Wave"
-        self.buffer.write((W - len(hint)) // 2, 18, hint, t.dim_text_color)
+        self.buffer.write((W - len(hint)) // 2, 14, hint, t.dim_text_color)
