@@ -9,7 +9,9 @@ from game.creatures.traits import Trait
 class CreatureCategory(Enum):
     ANIMAL       = "animal"
     MYTHOLOGICAL = "mythological"
+    FAMOUS       = "famous"
     ORIGINAL     = "original"
+    HYBRID       = "hybrid"
 
 
 @dataclass
