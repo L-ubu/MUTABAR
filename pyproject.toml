@@ -1,0 +1,41 @@
+[build-system]
+requires = ["setuptools>=68.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "mutabar"
+version = "0.1.0"
+description = "A macOS menu bar monster battler with AI-narrated combat"
+readme = "README.md"
+requires-python = ">=3.11"
+license = "MIT"
+authors = [{ name = "Luca Vandenweghe" }]
+keywords = ["game", "menu-bar", "macos", "monster", "battler", "pygame"]
+classifiers = [
+    "Operating System :: MacOS",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Games/Entertainment",
+]
+dependencies = [
+    "rumps>=0.4.0",
+    "pygame-ce>=2.5.0",
+    "pyobjc-framework-Cocoa>=10.0",
+]
+
+[project.optional-dependencies]
+ai = ["llama-cpp-python>=0.3.0"]
+dev = ["pytest>=8.0.0"]
+
+[project.scripts]
+mutabar = "main:main"
+
+[tool.setuptools]
+py-modules = ["main"]
+
+[tool.setuptools.packages.find]
+include = ["game*", "persistence*"]
+
+[tool.setuptools.package-data]
+"*" = ["*.png", "*.ttf", "*.json"]

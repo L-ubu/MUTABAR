@@ -1,4 +1,6 @@
 # game/renderer.py
+import math
+import colorsys
 from dataclasses import dataclass, field
 
 
@@ -6,6 +8,47 @@ from dataclasses import dataclass, field
 class Cell:
     char: str = " "
     color: tuple[int, int, int] = (200, 200, 200)
+    animation: str | None = None  # "pulse", "shimmer", "glow", "rainbow"
+
+
+def _hsv_to_rgb(h: float, s: float, v: float) -> tuple[int, int, int]:
+    r, g, b = colorsys.hsv_to_rgb(h % 1.0, s, v)
+    return (int(r * 255), int(g * 255), int(b * 255))
+
+
+def _apply_animation(color: tuple[int, int, int], animation: str | None,
+                     t: float, x: int, y: int) -> tuple[int, int, int]:
+    if animation is None:
+        return color
+    if animation == "pulse":
+        factor = 0.7 + 0.3 * math.sin(t * 3)
+        return (int(color[0] * factor), int(color[1] * factor), int(color[2] * factor))
+    elif animation == "shimmer":
+        wave = 0.6 + 0.4 * math.sin(t * 4 - x * 0.5)
+        return (int(color[0] * wave), int(color[1] * wave), int(color[2] * wave))
+    elif animation == "glow":
+        shift = int(30 * math.sin(t * 2))
+        return (min(255, max(0, color[0] + shift)),
+                min(255, max(0, color[1] + shift)),
+                min(255, max(0, color[2] + shift)))
+    elif animation == "rainbow":
+        hue = (t * 0.5 + x * 0.05 + y * 0.02) % 1.0
+        return _hsv_to_rgb(hue, 0.8, 1.0)
+    elif animation == "golden":
+        # Warm gold with a gentle wave between amber and bright gold
+        wave = 0.8 + 0.2 * math.sin(t * 2.5 + x * 0.3)
+        return (min(255, int(255 * wave)),
+                min(255, int(195 * wave)),
+                min(255, int(80 * wave * 0.6)))
+    elif animation == "legendary":
+        # Slow rainbow with high saturation — majestic
+        hue = (t * 0.3 + x * 0.04) % 1.0
+        return _hsv_to_rgb(hue, 0.6, 1.0)
+    elif animation == "mutagen":
+        # Toxic green pulse with electric flicker
+        flicker = 0.7 + 0.3 * math.sin(t * 5 + x * 0.8)
+        return (0, min(255, int(255 * flicker)), min(255, int(130 * flicker)))
+    return color
 
 
 class TextBuffer:
@@ -23,6 +66,7 @@ class TextBuffer:
             for cell in row:
                 cell.char = " "
                 cell.color = color
+                cell.animation = None
 
     def write(self, x: int, y: int, text: str, color: tuple[int, int, int] = (200, 200, 200)):
         for i, ch in enumerate(text):
@@ -32,6 +76,17 @@ class TextBuffer:
             if 0 <= y < self.rows and 0 <= cx < self.cols:
                 self._grid[y][cx].char = ch
                 self._grid[y][cx].color = color
+
+    def write_animated(self, x: int, y: int, text: str, color: tuple[int, int, int],
+                       animation: str | None = None):
+        for i, ch in enumerate(text):
+            cx = x + i
+            if cx >= self.cols:
+                break
+            if 0 <= y < self.rows and 0 <= cx < self.cols:
+                self._grid[y][cx].char = ch
+                self._grid[y][cx].color = color
+                self._grid[y][cx].animation = animation
 
     def get_char(self, x: int, y: int) -> str:
         if 0 <= x < self.cols and 0 <= y < self.rows:
@@ -76,4 +131,17 @@ class TextBuffer:
             for x, cell in enumerate(row):
                 if cell.char != " ":
                     rendered = font.render(cell.char, True, cell.color)
-                    surface.blit(rendered, (x * char_w, y * char_h))
+                    surface.blit(rendered, (6 + x * char_w, 6 + y * char_h))
+
+    def render_to_surface_animated(self, surface, font, bg_color: tuple[int, int, int], t: float):
+        """Render with animation transforms applied based on time."""
+        import pygame
+        surface.fill(bg_color)
+        char_w = font.size("M")[0]
+        char_h = font.get_linesize()
+        for y, row in enumerate(self._grid):
+            for x, cell in enumerate(row):
+                if cell.char != " ":
+                    color = _apply_animation(cell.color, cell.animation, t, x, y)
+                    rendered = font.render(cell.char, True, color)
+                    surface.blit(rendered, (6 + x * char_w, 6 + y * char_h))

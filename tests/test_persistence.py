@@ -5,6 +5,7 @@ Tests for persistence/database.py and persistence/config.py.
 
 import json
 import os
+import sqlite3
 import tempfile
 
 import pytest
@@ -235,3 +236,41 @@ class TestMutabarConfigSaveReload:
         cfg = MutabarConfig(tmp_config_path + ".nonexistent")
         assert cfg.theme == "tokyo_night"
         assert cfg.llm_n_ctx == 4096
+
+
+class TestMutabarDBSchemaV2:
+    def test_wallet_table_exists_with_seed_row(self, tmp_db):
+        cursor = tmp_db._conn.execute("SELECT mutagen FROM wallet WHERE id = 1;")
+        row = cursor.fetchone()
+        assert row is not None
+        assert row["mutagen"] == 0
+
+    def test_wallet_id_constraint_rejects_id_2(self, tmp_db):
+        with pytest.raises(sqlite3.IntegrityError):
+            tmp_db._conn.execute("INSERT INTO wallet (id, mutagen) VALUES (2, 100);")
+
+    def test_monsters_has_is_shiny_column(self, tmp_db):
+        cursor = tmp_db._conn.execute("PRAGMA table_info(monsters);")
+        columns = {row["name"]: row for row in cursor.fetchall()}
+        assert "is_shiny" in columns
+        assert columns["is_shiny"]["dflt_value"] == "0"
+        assert columns["is_shiny"]["notnull"] == 1
+
+    def test_idle_arena_table_exists(self, tmp_db):
+        cursor = tmp_db._conn.execute("PRAGMA table_info(idle_arena);")
+        columns = {row["name"] for row in cursor.fetchall()}
+        assert {"slot", "monster_id"} <= columns
+
+    def test_idle_arena_slot_constraint_rejects_slot_0(self, tmp_db):
+        monster_id = tmp_db.save_monster(name="X", species="X")
+        with pytest.raises(sqlite3.IntegrityError):
+            tmp_db._conn.execute(
+                "INSERT INTO idle_arena (slot, monster_id) VALUES (0, ?);", (monster_id,)
+            )
+
+    def test_idle_arena_slot_constraint_rejects_slot_4(self, tmp_db):
+        monster_id = tmp_db.save_monster(name="X", species="X")
+        with pytest.raises(sqlite3.IntegrityError):
+            tmp_db._conn.execute(
+                "INSERT INTO idle_arena (slot, monster_id) VALUES (4, ?);", (monster_id,)
+            )
