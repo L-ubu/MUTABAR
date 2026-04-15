@@ -10,7 +10,7 @@ from enum import Enum, auto
 from typing import List
 
 from game.battle.cpu_ai import CpuDifficulty
-from game.creatures.creature import Creature
+from game.creatures.creature import Creature, CreatureCategory
 from game.creatures.database import CREATURE_ROSTER, CreatureTemplate
 from game.creatures.types import MutationType
 
@@ -82,20 +82,41 @@ class RunManager:
         self.wave += 1
         self.state = RunState.BATTLE
 
+    @property
+    def is_boss_wave(self) -> bool:
+        return self.wave > 0 and self.wave % 5 == 0
+
     def generate_cpu_team(self) -> List[Creature]:
         """
         Generate the CPU team for the current wave.
 
-        Team count scales with wave: 1 + wave // 5, capped at 3.
-        Each creature's level is set to the current wave number.
+        Boss waves (every 5th): pick from FAMOUS/ORIGINAL/HYBRID categories,
+        higher shiny chance, level = wave + 2.
+        Normal waves: pick from ANIMAL/MYTHOLOGICAL, small shiny chance.
         """
         count = min(1 + self.wave // 5, 3)
-        pool = list(CREATURE_ROSTER)
+        roster = list(CREATURE_ROSTER)
+
+        if self.is_boss_wave:
+            boss_cats = {CreatureCategory.FAMOUS, CreatureCategory.ORIGINAL, CreatureCategory.HYBRID}
+            pool = [t for t in roster if t.category in boss_cats]
+            shiny_chance = 0.10
+            level_bonus = 2
+        else:
+            normal_cats = {CreatureCategory.ANIMAL, CreatureCategory.MYTHOLOGICAL}
+            pool = [t for t in roster if t.category in normal_cats]
+            shiny_chance = 0.03
+            level_bonus = 0
+
+        if not pool:
+            pool = roster
+
         templates = random.sample(pool, min(count, len(pool)))
         self.cpu_team = []
         for template in templates:
             creature = _instantiate(template)
-            creature.level = self.wave
+            creature.level = self.wave + level_bonus
+            creature.is_shiny = random.random() < shiny_chance
             self.cpu_team.append(creature)
         return self.cpu_team
 

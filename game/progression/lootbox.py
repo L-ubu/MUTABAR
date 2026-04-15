@@ -25,6 +25,7 @@ class Rarity(IntEnum):
     RARE = 3
     EPIC = 4
     LEGENDARY = 5
+    MUTAGEN = 6
 
 
 # ---------------------------------------------------------------------------
@@ -34,8 +35,12 @@ class Rarity(IntEnum):
 
 def _get_creature_rarity(template: CreatureTemplate) -> Rarity:
     """Derive the rarity of a creature template from its category and stats."""
+    if template.category == CreatureCategory.HYBRID:
+        return Rarity.MUTAGEN
     if template.category == CreatureCategory.ORIGINAL:
         return Rarity.LEGENDARY
+    if template.category == CreatureCategory.FAMOUS:
+        return Rarity.EPIC
     if template.category == CreatureCategory.MYTHOLOGICAL:
         return Rarity.RARE
     # ANIMAL
@@ -66,11 +71,12 @@ _RARITY_POOLS: dict[Rarity, list[CreatureTemplate]] = _build_rarity_pools()
 
 
 _BASE_WEIGHTS: dict[Rarity, float] = {
-    Rarity.COMMON: 50.0,
-    Rarity.UNCOMMON: 30.0,
+    Rarity.COMMON: 45.0,
+    Rarity.UNCOMMON: 25.0,
     Rarity.RARE: 15.0,
-    Rarity.EPIC: 4.0,
-    Rarity.LEGENDARY: 1.0,
+    Rarity.EPIC: 10.0,
+    Rarity.LEGENDARY: 4.0,
+    Rarity.MUTAGEN: 1.0,
 }
 
 _WAVE_SHIFT_CAP = 31  # no more shifts after wave 31
@@ -90,7 +96,7 @@ def get_rarity_weights(wave: int, unlocked_tiers: set[str]) -> dict[Rarity, floa
     shifts = min(max(wave - 1, 0), _WAVE_SHIFT_CAP - 1)
     if shifts > 0:
         # We have shifts points to move away from COMMON
-        higher = [Rarity.UNCOMMON, Rarity.RARE, Rarity.EPIC, Rarity.LEGENDARY]
+        higher = [Rarity.UNCOMMON, Rarity.RARE, Rarity.EPIC, Rarity.LEGENDARY, Rarity.MUTAGEN]
         per_tier = shifts / len(higher)
         weights[Rarity.COMMON] = max(0.0, weights[Rarity.COMMON] - shifts)
         for tier in higher:
@@ -162,8 +168,8 @@ def roll_creature(
     pool = _RARITY_POOLS[winning_rarity]
     winner = random.choice(pool)
 
-    # Build animation strip: 20 random creatures from the full roster
-    strip_size = 20
+    # Build animation strip: 40 random creatures for longer suspense
+    strip_size = 40
     strip: list[CreatureTemplate] = random.choices(CREATURE_ROSTER, k=strip_size)
 
     # Insert winner near the end
