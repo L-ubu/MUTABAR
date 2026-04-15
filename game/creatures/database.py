@@ -504,7 +504,147 @@ CREATURE_ROSTER: List[CreatureTemplate] = [
         base_hp=180, base_atk=17, base_def=16,
     ),
 
-    # ------------------------------------------------------------------ ORIGINALS (3)
+    # ------------------------------------------------------------------ FAMOUS MONSTERS — EPIC (15)
+    CreatureTemplate(
+        name="Werewolf",
+        category=CreatureCategory.FAMOUS,
+        traits=[
+            _t("Moonrage", "Power surges under moonlight", ["moon", "rage", "transform"]),
+            _t("Savage Claws", "Rends flesh with cursed claws", ["claw", "curse", "rend"]),
+        ],
+        base_hp=120, base_atk=18, base_def=11,
+    ),
+    CreatureTemplate(
+        name="Vampire",
+        category=CreatureCategory.FAMOUS,
+        traits=[
+            _t("Blood Drain", "Drains life to heal self", ["drain", "blood", "heal"]),
+            _t("Bat Swarm", "Dissolves into a swarm of bats", ["bat", "swarm", "evade"]),
+            _t("Hypnotic Gaze", "Mesmerizes the weak-willed", ["hypnotic", "gaze", "stun"]),
+        ],
+        base_hp=110, base_atk=16, base_def=12,
+    ),
+    CreatureTemplate(
+        name="Minotaur",
+        category=CreatureCategory.FAMOUS,
+        traits=[
+            _t("Labyrinth Charge", "Charges blindly with massive horns", ["charge", "horn", "ram"]),
+            _t("Axe Cleave", "Brutal overhead axe swing", ["axe", "cleave", "smash"]),
+        ],
+        base_hp=150, base_atk=19, base_def=14,
+    ),
+    CreatureTemplate(
+        name="Cyclops",
+        category=CreatureCategory.FAMOUS,
+        traits=[
+            _t("Boulder Hurl", "Throws massive rocks", ["boulder", "throw", "crush"]),
+            _t("Eye Beam", "Focused energy from single eye", ["beam", "eye", "blast"]),
+        ],
+        base_hp=170, base_atk=20, base_def=13,
+    ),
+    CreatureTemplate(
+        name="Medusa",
+        category=CreatureCategory.FAMOUS,
+        traits=[
+            _t("Stone Gaze", "Petrifies those who look", ["stone", "gaze", "petrify"]),
+            _t("Snake Hair", "Venomous serpents strike from her head", ["snake", "venom", "bite"]),
+        ],
+        base_hp=90, base_atk=17, base_def=10,
+    ),
+    CreatureTemplate(
+        name="Golem",
+        category=CreatureCategory.FAMOUS,
+        traits=[
+            _t("Stone Fist", "Devastating rocky punch", ["stone", "fist", "smash"]),
+            _t("Earthen Shell", "Nearly indestructible stone body", ["stone", "armor", "shell"]),
+        ],
+        base_hp=200, base_atk=14, base_def=22,
+    ),
+    CreatureTemplate(
+        name="Banshee",
+        category=CreatureCategory.FAMOUS,
+        traits=[
+            _t("Death Wail", "Piercing scream damages all", ["wail", "scream", "sonic"]),
+            _t("Ghostly Phase", "Phases through attacks", ["ghost", "phase", "evade"]),
+        ],
+        base_hp=80, base_atk=18, base_def=6,
+    ),
+    CreatureTemplate(
+        name="Chimera",
+        category=CreatureCategory.FAMOUS,
+        traits=[
+            _t("Triple Maw", "Lion, goat and snake heads attack", ["bite", "triple", "maw"]),
+            _t("Flame Breath", "Goat head breathes fire", ["fire", "breath", "burn"]),
+            _t("Tail Venom", "Snake tail injects poison", ["venom", "tail", "poison"]),
+        ],
+        base_hp=140, base_atk=18, base_def=13,
+    ),
+    CreatureTemplate(
+        name="Manticore",
+        category=CreatureCategory.FAMOUS,
+        traits=[
+            _t("Tail Spikes", "Launches venomous tail spikes", ["spike", "tail", "venom"]),
+            _t("Lion Fury", "Savage lion body attacks", ["fury", "claw", "maul"]),
+        ],
+        base_hp=130, base_atk=19, base_def=12,
+    ),
+    CreatureTemplate(
+        name="Yeti",
+        category=CreatureCategory.FAMOUS,
+        traits=[
+            _t("Frost Slam", "Icy fist shatters bone", ["frost", "slam", "ice"]),
+            _t("Blizzard Roar", "Summons freezing winds", ["blizzard", "roar", "cold"]),
+        ],
+        base_hp=160, base_atk=17, base_def=16,
+    ),
+    CreatureTemplate(
+        name="Mothman",
+        category=CreatureCategory.FAMOUS,
+        traits=[
+            _t("Red Eyes", "Hypnotic crimson stare", ["eyes", "red", "hypnotic"]),
+            _t("Wing Gust", "Massive wings create shockwave", ["wing", "gust", "wind"]),
+            _t("Omen Aura", "Presence causes dread", ["omen", "dread", "fear"]),
+        ],
+        base_hp=100, base_atk=15, base_def=11,
+    ),
+    CreatureTemplate(
+        name="Wendigo",
+        category=CreatureCategory.FAMOUS,
+        traits=[
+            _t("Hunger Frenzy", "Insatiable hunger drives attacks", ["hunger", "frenzy", "bite"]),
+            _t("Frost Aura", "Freezing presence slows foes", ["frost", "aura", "slow"]),
+        ],
+        base_hp=130, base_atk=20, base_def=10,
+    ),
+    CreatureTemplate(
+        name="Frankenstein",
+        category=CreatureCategory.FAMOUS,
+        traits=[
+            _t("Lightning Rod", "Absorbs electricity to power up", ["lightning", "absorb", "power"]),
+            _t("Brute Slam", "Massive fists pound the ground", ["slam", "brute", "smash"]),
+        ],
+        base_hp=180, base_atk=16, base_def=15,
+    ),
+    CreatureTemplate(
+        name="Nessie",
+        category=CreatureCategory.FAMOUS,
+        traits=[
+            _t("Deep Dive", "Vanishes beneath the waves", ["dive", "deep", "evade"]),
+            _t("Tidal Slam", "Massive tail creates waves", ["tidal", "slam", "wave"]),
+        ],
+        base_hp=160, base_atk=14, base_def=18,
+    ),
+    CreatureTemplate(
+        name="Chupacabra",
+        category=CreatureCategory.FAMOUS,
+        traits=[
+            _t("Blood Siphon", "Drains blood to restore health", ["blood", "drain", "heal"]),
+            _t("Night Ambush", "Strikes from darkness", ["night", "ambush", "stealth"]),
+        ],
+        base_hp=95, base_atk=18, base_def=9,
+    ),
+
+    # ------------------------------------------------------------------ ORIGINALS — LEGENDARY (5)
     CreatureTemplate(
         name="Snorerelax",
         category=CreatureCategory.ORIGINAL,
@@ -522,7 +662,6 @@ CREATURE_ROSTER: List[CreatureTemplate] = [
             _t("Data Rend", "Corrupts enemy data with claws", ["data", "corrupt", "rend"]),
             _t("Pixel Shift", "Teleports via digital glitch", ["glitch", "teleport", "shift"]),
             _t("Error Cascade", "Triggers cascading system errors", ["error", "cascade", "crash"]),
-            _t("Null Byte", "Injects null data to delete defenses", ["null", "byte", "delete"]),
         ],
         base_hp=85, base_atk=17, base_def=8,
     ),
@@ -535,6 +674,144 @@ CREATURE_ROSTER: List[CreatureTemplate] = [
             _t("Event Horizon", "Nothing escapes its gravitational pull", ["gravity", "pull", "horizon"]),
         ],
         base_hp=110, base_atk=16, base_def=14,
+    ),
+    CreatureTemplate(
+        name="King Kong",
+        category=CreatureCategory.ORIGINAL,
+        traits=[
+            _t("Primal Smash", "Devastating double-fist ground pound", ["smash", "fist", "pound"]),
+            _t("Chest Roar", "Terrifying war cry shakes the earth", ["roar", "shake", "fear"]),
+            _t("Tower Climb", "Scales anything for aerial advantage", ["climb", "aerial", "height"]),
+        ],
+        base_hp=220, base_atk=22, base_def=16,
+    ),
+    CreatureTemplate(
+        name="Godzilla",
+        category=CreatureCategory.ORIGINAL,
+        traits=[
+            _t("Atomic Breath", "Nuclear energy beam annihilates", ["atomic", "breath", "nuke"]),
+            _t("Titan Stomp", "Earthquake-inducing footfall", ["stomp", "earthquake", "titan"]),
+            _t("Radiation Aura", "Passive radiation damages nearby foes", ["radiation", "aura", "burn"]),
+        ],
+        base_hp=250, base_atk=24, base_def=20,
+    ),
+
+    # ------------------------------------------------------------------ HYBRIDS — MUTAGEN (12)
+    CreatureTemplate(
+        name="Crococrow",
+        category=CreatureCategory.HYBRID,
+        traits=[
+            _t("Death Roll Dive", "Aerial spin tears prey apart", ["roll", "dive", "tear"]),
+            _t("Beak Snap", "Crocodile-strength beak bite", ["beak", "snap", "crush"]),
+            _t("Swamp Wings", "Murky wings conceal approach", ["wing", "swamp", "stealth"]),
+        ],
+        base_hp=120, base_atk=19, base_def=14,
+    ),
+    CreatureTemplate(
+        name="Dragophoenix",
+        category=CreatureCategory.HYBRID,
+        traits=[
+            _t("Eternal Flame", "Fire that never dies", ["flame", "eternal", "burn"]),
+            _t("Rebirth Scales", "Dragon scales regenerate from ash", ["rebirth", "scale", "heal"]),
+            _t("Solar Dragon Breath", "Sun-powered fire stream", ["solar", "breath", "fire"]),
+        ],
+        base_hp=160, base_atk=21, base_def=14,
+    ),
+    CreatureTemplate(
+        name="Sharkbear",
+        category=CreatureCategory.HYBRID,
+        traits=[
+            _t("Land Jaws", "Shark bite on bear body", ["jaw", "bite", "crush"]),
+            _t("Frenzy Maul", "Berserker shark-bear rampage", ["frenzy", "maul", "rage"]),
+            _t("Amphibious Charge", "Attacks from land or water", ["charge", "amphibious", "rush"]),
+        ],
+        base_hp=170, base_atk=22, base_def=15,
+    ),
+    CreatureTemplate(
+        name="Wolfspider",
+        category=CreatureCategory.HYBRID,
+        traits=[
+            _t("Web Pack", "Web traps coordinated with pack", ["web", "pack", "trap"]),
+            _t("Venom Fangs", "Wolf jaws with spider venom", ["venom", "fang", "bite"]),
+            _t("Eight-Leg Pounce", "Eight legs for explosive speed", ["pounce", "speed", "leg"]),
+        ],
+        base_hp=100, base_atk=20, base_def=11,
+    ),
+    CreatureTemplate(
+        name="Eaglesnake",
+        category=CreatureCategory.HYBRID,
+        traits=[
+            _t("Sky Constrict", "Wraps prey mid-flight", ["constrict", "sky", "wrap"]),
+            _t("Venom Talon", "Talons drip with venom", ["venom", "talon", "poison"]),
+        ],
+        base_hp=90, base_atk=21, base_def=9,
+    ),
+    CreatureTemplate(
+        name="Octolion",
+        category=CreatureCategory.HYBRID,
+        traits=[
+            _t("Tentacle Mane", "Eight tentacles replace mane", ["tentacle", "mane", "grab"]),
+            _t("Ink Roar", "Blinding ink blast with deafening roar", ["ink", "roar", "blind"]),
+            _t("Deep Pride", "Commands respect from the abyss", ["pride", "abyss", "fear"]),
+        ],
+        base_hp=150, base_atk=19, base_def=15,
+    ),
+    CreatureTemplate(
+        name="Scorpiorilla",
+        category=CreatureCategory.HYBRID,
+        traits=[
+            _t("Venom Pound", "Stinger tail on gorilla body", ["venom", "pound", "sting"]),
+            _t("Pincer Fist", "Gorilla punch with scorpion claws", ["pincer", "fist", "smash"]),
+        ],
+        base_hp=160, base_atk=21, base_def=16,
+    ),
+    CreatureTemplate(
+        name="Batshark",
+        category=CreatureCategory.HYBRID,
+        traits=[
+            _t("Sonar Frenzy", "Echolocation-guided feeding frenzy", ["sonar", "frenzy", "bite"]),
+            _t("Night Fin", "Flies through air like water", ["fin", "fly", "night"]),
+            _t("Blood Scent", "Tracks prey by blood from miles away", ["blood", "scent", "track"]),
+        ],
+        base_hp=110, base_atk=20, base_def=10,
+    ),
+    CreatureTemplate(
+        name="Tigerhawk",
+        category=CreatureCategory.HYBRID,
+        traits=[
+            _t("Striped Dive", "Tiger pounce from the sky", ["dive", "pounce", "stripe"]),
+            _t("Claw Storm", "Talons and tiger claws shred together", ["claw", "storm", "rend"]),
+        ],
+        base_hp=105, base_atk=22, base_def=10,
+    ),
+    CreatureTemplate(
+        name="Frogmantis",
+        category=CreatureCategory.HYBRID,
+        traits=[
+            _t("Tongue Scythe", "Sticky tongue with mantis blade", ["tongue", "scythe", "cut"]),
+            _t("Leap Strike", "Explosive leap into mantis slash", ["leap", "strike", "slash"]),
+            _t("Toxic Molt", "Sheds poisonous skin", ["toxic", "molt", "poison"]),
+        ],
+        base_hp=80, base_atk=23, base_def=7,
+    ),
+    CreatureTemplate(
+        name="Rhinocobra",
+        category=CreatureCategory.HYBRID,
+        traits=[
+            _t("Venom Horn", "Horn charge delivers neurotoxin", ["venom", "horn", "charge"]),
+            _t("Hood Shield", "Cobra hood as armored shield", ["hood", "shield", "block"]),
+        ],
+        base_hp=155, base_atk=19, base_def=18,
+    ),
+    CreatureTemplate(
+        name="Owlpanther",
+        category=CreatureCategory.HYBRID,
+        traits=[
+            _t("Silent Shadow", "Owl silence with panther stealth", ["silent", "shadow", "stealth"]),
+            _t("Night Rend", "Nocturnal ambush tears prey apart", ["night", "rend", "ambush"]),
+            _t("Wisdom Fury", "Calculates the perfect strike", ["wisdom", "fury", "precise"]),
+        ],
+        base_hp=100, base_atk=20, base_def=12,
     ),
 ]
 

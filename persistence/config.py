@@ -22,6 +22,8 @@ _DEFAULTS: dict[str, Any] = {
     },
     "load_side": "right",
     "typewriter_speed": 30,
+    "sound_enabled": True,
+    "idle_last_check": None,
 }
 
 
@@ -107,6 +109,30 @@ class MutabarConfig:
     @typewriter_speed.setter
     def typewriter_speed(self, value: int) -> None:
         self._data["typewriter_speed"] = value
+
+    # ------------------------------------------------------------------
+    # sound_enabled
+    # ------------------------------------------------------------------
+
+    @property
+    def sound_enabled(self) -> bool:
+        return bool(self._data.get("sound_enabled", True))
+
+    @sound_enabled.setter
+    def sound_enabled(self, value: bool) -> None:
+        self._data["sound_enabled"] = bool(value)
+
+    # ------------------------------------------------------------------
+    # idle_last_check
+    # ------------------------------------------------------------------
+
+    @property
+    def idle_last_check(self):
+        return self._data.get("idle_last_check", None)
+
+    @idle_last_check.setter
+    def idle_last_check(self, value) -> None:
+        self._data["idle_last_check"] = value
 
     # ------------------------------------------------------------------
     # Persistence

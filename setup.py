@@ -1,8 +1,4 @@
-from setuptools import setup, find_packages
-
-setup(
-    name="mutabar",
-    version="0.1.0",
-    packages=find_packages(),
-    python_requires=">=3.11",
-)
+# This file exists for editable installs with older pip versions.
+# All config lives in pyproject.toml.
+from setuptools import setup
+setup()

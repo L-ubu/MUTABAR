@@ -25,6 +25,7 @@ class Rarity(IntEnum):
     RARE = 3
     EPIC = 4
     LEGENDARY = 5
+    MUTAGEN = 6
 
 
 # ---------------------------------------------------------------------------
@@ -34,8 +35,12 @@ class Rarity(IntEnum):
 
 def _get_creature_rarity(template: CreatureTemplate) -> Rarity:
     """Derive the rarity of a creature template from its category and stats."""
+    if template.category == CreatureCategory.HYBRID:
+        return Rarity.MUTAGEN
     if template.category == CreatureCategory.ORIGINAL:
         return Rarity.LEGENDARY
+    if template.category == CreatureCategory.FAMOUS:
+        return Rarity.EPIC
     if template.category == CreatureCategory.MYTHOLOGICAL:
         return Rarity.RARE
     # ANIMAL
@@ -66,11 +71,12 @@ _RARITY_POOLS: dict[Rarity, list[CreatureTemplate]] = _build_rarity_pools()
 
 
 _BASE_WEIGHTS: dict[Rarity, float] = {
-    Rarity.COMMON: 50.0,
-    Rarity.UNCOMMON: 30.0,
+    Rarity.COMMON: 45.0,
+    Rarity.UNCOMMON: 25.0,
     Rarity.RARE: 15.0,
-    Rarity.EPIC: 4.0,
-    Rarity.LEGENDARY: 1.0,
+    Rarity.EPIC: 10.0,
+    Rarity.LEGENDARY: 4.0,
+    Rarity.MUTAGEN: 1.0,
 }
 
 _WAVE_SHIFT_CAP = 31  # no more shifts after wave 31
@@ -90,7 +96,7 @@ def get_rarity_weights(wave: int, unlocked_tiers: set[str]) -> dict[Rarity, floa
     shifts = min(max(wave - 1, 0), _WAVE_SHIFT_CAP - 1)
     if shifts > 0:
         # We have shifts points to move away from COMMON
-        higher = [Rarity.UNCOMMON, Rarity.RARE, Rarity.EPIC, Rarity.LEGENDARY]
+        higher = [Rarity.UNCOMMON, Rarity.RARE, Rarity.EPIC, Rarity.LEGENDARY, Rarity.MUTAGEN]
         per_tier = shifts / len(higher)
         weights[Rarity.COMMON] = max(0.0, weights[Rarity.COMMON] - shifts)
         for tier in higher:
@@ -128,6 +134,7 @@ class RollResult:
     template: CreatureTemplate
     strip: list[CreatureTemplate]
     winner_index: int
+    is_shiny: bool = False
 
 
 # ---------------------------------------------------------------------------
@@ -135,7 +142,14 @@ class RollResult:
 # ---------------------------------------------------------------------------
 
 
-def roll_creature(wave: int, unlocked_tiers: set[str]) -> RollResult:
+_DEFAULT_SHINY_CHANCE: float = 0.01
+
+
+def roll_creature(
+    wave: int, unlocked_tiers: set[str],
+    rarity_weights: dict[Rarity, float] | None = None,
+    shiny_chance: float = _DEFAULT_SHINY_CHANCE,
+) -> RollResult:
     """
     Perform a lootbox roll and return a RollResult.
 
@@ -144,18 +158,18 @@ def roll_creature(wave: int, unlocked_tiers: set[str]) -> RollResult:
     - Builds an animation strip of 20 random creatures with the winner
       inserted near the end (index = size - randint(2, 5)).
     """
-    weights = get_rarity_weights(wave, unlocked_tiers)
+    weights = rarity_weights if rarity_weights is not None else get_rarity_weights(wave, unlocked_tiers)
 
     # Collect available rarities (non-zero weight)
     available_rarities = [r for r, w in weights.items() if w > 0]
-    rarity_weights = [weights[r] for r in available_rarities]
+    available_weights = [weights[r] for r in available_rarities]
 
-    winning_rarity = random.choices(available_rarities, weights=rarity_weights, k=1)[0]
+    winning_rarity = random.choices(available_rarities, weights=available_weights, k=1)[0]
     pool = _RARITY_POOLS[winning_rarity]
     winner = random.choice(pool)
 
-    # Build animation strip: 20 random creatures from the full roster
-    strip_size = 20
+    # Build animation strip: 40 random creatures for longer suspense
+    strip_size = 40
     strip: list[CreatureTemplate] = random.choices(CREATURE_ROSTER, k=strip_size)
 
     # Insert winner near the end
@@ -163,9 +177,12 @@ def roll_creature(wave: int, unlocked_tiers: set[str]) -> RollResult:
     strip = list(strip)
     strip.insert(winner_index, winner)
 
+    is_shiny = random.random() < shiny_chance
+
     return RollResult(
         rarity=winning_rarity,
         template=winner,
         strip=strip,
         winner_index=winner_index,
+        is_shiny=is_shiny,
     )
