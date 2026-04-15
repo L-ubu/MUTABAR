@@ -5,12 +5,24 @@ import pygame
 class GameWindow:
     """Borderless pygame window positioned below the macOS menu bar."""
 
-    WIDTH = 350
-    HEIGHT = 420
+    PADDING = 6
     FPS = 30
 
-    def __init__(self, font_path: str = None):
+    def __init__(self, cols: int = 36, rows: int = 22, font_path: str = None):
         pygame.init()
+
+        if font_path and os.path.exists(font_path):
+            self.font = pygame.font.Font(font_path, 13)
+        else:
+            self.font = pygame.font.SysFont("Menlo", 13)
+
+        self.char_h = self.font.get_linesize()
+        self.char_w = self.font.size("M")[0]
+        self.max_rows = rows
+        self.max_cols = cols
+
+        self.WIDTH = cols * self.char_w + self.PADDING * 2
+        self.HEIGHT = rows * self.char_h + self.PADDING * 2
 
         self.surface = pygame.display.set_mode(
             (self.WIDTH, self.HEIGHT),
@@ -18,19 +30,9 @@ class GameWindow:
         )
         pygame.display.set_caption("MUTABAR")
 
-        if font_path and os.path.exists(font_path):
-            self.font = pygame.font.Font(font_path, 13)
-        else:
-            self.font = pygame.font.SysFont("Menlo", 13)
-
         self.clock = pygame.time.Clock()
         self.visible = True
         self._ns_window = None
-
-        self.char_h = self.font.get_linesize()
-        self.char_w = self.font.size("M")[0]
-        self.max_rows = self.HEIGHT // self.char_h
-        self.max_cols = self.WIDTH // self.char_w
 
         self._setup_macos()
 
