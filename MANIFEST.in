@@ -1,0 +1,5 @@
+include main.py
+include README.md
+recursive-include assets *.png *.ttf
+recursive-include game *.py
+recursive-include persistence *.py
