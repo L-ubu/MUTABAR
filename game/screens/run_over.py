@@ -9,7 +9,6 @@ class RunOverScreen(Screen):
         super().__init__(buffer, theme)
         self.waves_survived = waves_survived
         self.mutagen_earned = mutagen_earned
-        # Bank mutagen and end run once
         db.add_mutagen(mutagen_earned)
         db.end_run(run_id, waves_survived, mutagen_earned)
 
@@ -22,11 +21,14 @@ class RunOverScreen(Screen):
         self.buffer.clear()
         t = self.theme
         W = self.buffer.cols
+        H = self.buffer.rows
         title = "Run Over!"
-        self.buffer.write((W - len(title)) // 2, 8, title, t.accent_color)
+        self.buffer.write((W - len(title)) // 2, 4, title, t.accent_color)
+        self.buffer.write(1, 6, "\u2500" * (W - 2), t.border_color)
         waves = f"Survived {self.waves_survived} waves"
-        self.buffer.write((W - len(waves)) // 2, 11, waves, t.text_color)
+        self.buffer.write((W - len(waves)) // 2, 8, waves, t.text_color)
         earned = f"+{self.mutagen_earned} mutagen banked"
-        self.buffer.write((W - len(earned)) // 2, 13, earned, t.text_color)
+        self.buffer.write((W - len(earned)) // 2, 10, earned, t.highlight_color)
+        self.buffer.write(1, 12, "\u2500" * (W - 2), t.border_color)
         hint = "[Enter] Main Menu"
-        self.buffer.write((W - len(hint)) // 2, 18, hint, t.dim_text_color)
+        self.buffer.write((W - len(hint)) // 2, 14, hint, t.dim_text_color)

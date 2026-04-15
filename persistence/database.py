@@ -184,6 +184,18 @@ class MutabarDB:
         self._conn.commit()
         return cursor.lastrowid
 
+    def get_species_count(self, species: str) -> int:
+        row = self._conn.execute("SELECT COUNT(*) FROM monsters WHERE species = ?;", (species,)).fetchone()
+        return int(row[0])
+
+    def boost_creature_stats(self, species: str, hp_boost: int, atk_boost: int, def_boost: int) -> None:
+        self._conn.execute(
+            """UPDATE monsters SET hp = hp + ?, atk = atk + ?, defense = defense + ?
+               WHERE id = (SELECT MIN(id) FROM monsters WHERE species = ?);""",
+            (hp_boost, atk_boost, def_boost, species),
+        )
+        self._conn.commit()
+
     def get_collection(self) -> list[dict]:
         cursor = self._conn.execute("SELECT * FROM monsters ORDER BY id;")
         result = []
