@@ -12,10 +12,18 @@ MAX_OFFLINE_MINUTES = 480
 
 
 def calculate_idle_rate(creatures: list[dict]) -> float:
-    """Calculate total mutagen per minute for idle team."""
+    """Calculate total mutagen per minute for idle team.
+
+    Rate per creature = (hp + atk + defense) / 20.
+    Stronger creatures produce significantly more.
+    Shiny bonus: +15%.
+    """
     total = 0.0
     for c in creatures:
-        base = (c.get("atk", 0) + c.get("defense", 0)) / 10.0
+        hp = c.get("hp", 0)
+        atk = c.get("atk", 0)
+        defense = c.get("defense", 0)
+        base = (hp + atk + defense) / 20.0
         if c.get("is_shiny"):
             base *= 1.15
         total += base

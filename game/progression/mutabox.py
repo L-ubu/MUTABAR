@@ -9,8 +9,8 @@ class _TierConfig:
     rarity_weights: dict[Rarity, float]
     shiny_chance: float
 
-_STANDARD_WEIGHTS = {Rarity.COMMON: 50.0, Rarity.UNCOMMON: 30.0, Rarity.RARE: 15.0, Rarity.EPIC: 4.0, Rarity.LEGENDARY: 1.0}
-_PREMIUM_WEIGHTS = {Rarity.COMMON: 25.0, Rarity.UNCOMMON: 30.0, Rarity.RARE: 25.0, Rarity.EPIC: 15.0, Rarity.LEGENDARY: 5.0}
+_STANDARD_WEIGHTS = {Rarity.COMMON: 55.0, Rarity.UNCOMMON: 22.0, Rarity.RARE: 12.0, Rarity.EPIC: 7.0, Rarity.LEGENDARY: 3.0, Rarity.MUTAGEN: 1.0}
+_PREMIUM_WEIGHTS = {Rarity.COMMON: 20.0, Rarity.UNCOMMON: 25.0, Rarity.RARE: 25.0, Rarity.EPIC: 17.0, Rarity.LEGENDARY: 10.0, Rarity.MUTAGEN: 3.0}
 
 class MutaboxTier(Enum):
     STANDARD = _TierConfig(cost=50, rarity_weights=_STANDARD_WEIGHTS, shiny_chance=0.01)
